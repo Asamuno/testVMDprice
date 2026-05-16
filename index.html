@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Admin — Vekus Mining Development</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c10;--bg2:#111318;--bg3:#181b22;--border:#1e2330;
+  --accent:#62AA46;--accent2:#4a8a33;--green:#62AA46;--red:#c0392b;--gold:#8fd470;
+  --text:#e8eaf0;--muted:#5a6070;--dim:#2a2e3a;
+}
+html{overflow-x:clip;overscroll-behavior-x:none}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;font-weight:400;min-height:100vh;overscroll-behavior:none;padding-top:52px}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,12,16,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;justify-content:space-between;min-height:52px;flex-wrap:wrap;gap:4px;transform:translateZ(0);-webkit-transform:translateZ(0)}
+.nav-logo{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase}
+.nav-logo span{color:var(--text)}
+.nav-links{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.nav-links a{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none}
+.nav-links a:hover{color:var(--accent)}
+.nav-cta{background:var(--accent);color:#000;padding:6px 12px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;text-decoration:none}
+.export-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:1px;padding:4px 8px;border-radius:4px;cursor:pointer;text-transform:uppercase}
+.export-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* HERO */
+.hero{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:72px 16px 40px;position:relative}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(98,170,70,.06),transparent 70%)}
+.hero-tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:16px;opacity:.8}
+.hero h1{font-size:clamp(36px,8vw,88px);font-weight:700;letter-spacing:4px;text-transform:uppercase;line-height:.95;color:#fff;position:relative}
+.hero h1 .a{color:var(--accent);display:block}
+.hero h1 .w{color:#fff;display:block}
+.hero h1 .d{display:block;font-size:clamp(14px,3vw,28px);letter-spacing:6px;color:var(--muted);margin-top:8px;font-weight:400}
+.hero-sub{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:20px;max-width:480px}
+.hero-line{width:100px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:24px auto}
+.hero-stats{display:flex;gap:28px;justify-content:center;flex-wrap:wrap}
+.stat-num{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;color:var(--accent)}
+.stat-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+
+/* TICKER */
+.ticker-bar{background:var(--bg3);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;gap:10px 20px;flex-wrap:wrap;align-items:center;;position:sticky;top:52px;z-index:90}
+.ticker-bar::-webkit-scrollbar{display:none}
+.ticker-item{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;flex-shrink:0}
+.ticker-sym{color:var(--muted);font-size:9px;letter-spacing:1px}
+.ticker-usd{color:var(--accent);font-weight:700}
+.ticker-rub{color:var(--text)}
+.ticker-dot{width:3px;height:3px;border-radius:50%;background:var(--border)}
+.ticker-updated{flex-shrink:0;display:flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap}
+#ticker-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);font-weight:400}
+.refresh-btn-yield{background:var(--accent);border:none;color:#000;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:4px 12px;border-radius:4px;cursor:pointer;text-transform:uppercase;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:6px}
+.refresh-btn-yield:hover{opacity:.85}
+.refresh-btn-yield.loading{opacity:.7;cursor:wait}
+.refresh-btn-yield .btn-icon{display:inline-block;transition:transform .1s}
+.refresh-btn-yield.loading .btn-icon{animation:spin .7s linear infinite}
+.refresh-btn-yield.done{background:#2a7a2a}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* INFO BAR */
+.info-bar{background:var(--bg3);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.info-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.info-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);flex-shrink:0}
+
+/* ELEC BAR */
+.elec-bar{background:var(--bg2);border-bottom:2px solid var(--accent);padding:10px 16px;display:flex;flex-direction:row;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center}
+@media(min-width:701px){
+  .elec-bar{flex-wrap:nowrap!important;gap:20px}
+  .elec-sep{display:block!important;width:1px;height:36px;background:var(--border)}
+}
+.elec-lightning{font-size:16px;flex-shrink:0;line-height:1}
+.elec-input-group{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
+.elec-group-label{font-size:9px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
+.elec-input-row{display:flex;align-items:center;gap:6px}
+.elec-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;padding:5px 9px;border-radius:4px;width:72px;outline:none;-moz-appearance:textfield}
+.elec-input::-webkit-outer-spin-button,.elec-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.elec-input:focus{border-color:var(--accent)}
+.elec-unit{font-size:10px;color:var(--muted);letter-spacing:1px;white-space:nowrap}
+.uptime-note{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px}
+.elec-sep{width:1px;height:36px;background:var(--border);flex-shrink:0}
+
+/* MAIN */
+.main{max-width:1280px;margin:0 auto;padding:24px 16px 48px}
+
+/* ADMIN PANEL */
+.admin-toggle{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:0}
+.admin-toggle.closed{border-radius:8px;margin-bottom:20px}
+.admin-icon{width:28px;height:28px;border-radius:5px;background:var(--dim);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.admin-text{flex:1}
+.admin-title{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text)}
+.admin-sub{font-size:10px;color:var(--muted);margin-top:1px;letter-spacing:1px}
+.admin-chevron{font-size:14px;color:var(--muted);transition:transform .3s}
+.admin-chevron.open{transform:rotate(180deg)}
+.admin-panel{display:none;background:var(--bg2);border:1px solid var(--accent);border-top:none;border-radius:0 0 8px 8px;margin-bottom:20px;overflow:hidden}
+.admin-panel.open{display:block}
+.global-params{padding:14px 16px;border-bottom:1px solid var(--border);background:rgba(98,170,70,.03)}
+.global-params-title{font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.gp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.gp-field{display:flex;flex-direction:column;gap:3px}
+.gp-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.gp-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;padding:5px 8px;border-radius:4px;outline:none;width:100%;-moz-appearance:textfield}
+.gp-input::-webkit-outer-spin-button,.gp-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.gp-input:focus{border-color:var(--accent)}
+.gp-unit{font-size:9px;color:var(--muted);letter-spacing:1px}
+.gp-formula{grid-column:1/-1;font-size:9px;color:var(--muted);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:7px 10px;letter-spacing:.5px;line-height:1.7;font-family:'JetBrains Mono',monospace}
+.admin-models{padding:14px 16px}
+.admin-models-title{font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.admin-model-row{display:grid;grid-template-columns:180px 110px 1fr;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.admin-model-row:last-child{border-bottom:none}
+.admin-model-name{font-size:12px;font-weight:700;color:var(--text)}
+.admin-model-sub{font-size:9px;color:var(--muted);margin-top:1px;letter-spacing:1px}
+.admin-base-price{display:flex;flex-direction:column;gap:2px}
+.admin-bp-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.admin-bp-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;padding:4px 7px;border-radius:4px;outline:none;width:100px;-moz-appearance:textfield}
+.admin-bp-input::-webkit-outer-spin-button,.admin-bp-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.admin-bp-input:focus{border-color:var(--accent)}
+.admin-overrides{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.override-field{display:flex;flex-direction:column;gap:2px}
+.override-label{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.override-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 6px;border-radius:4px;outline:none;width:75px;-moz-appearance:textfield}
+.override-input::-webkit-outer-spin-button,.override-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.override-input:focus{border-color:var(--accent)}
+.override-input::placeholder{color:var(--dim);font-size:10px;font-weight:400}
+.admin-calc-result{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px;padding:5px 7px;background:var(--bg3);border-radius:4px;border:1px solid var(--border)}
+.calc-tag{font-size:9px;color:var(--muted);letter-spacing:1px}
+.calc-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700}
+.calc-val.ex{color:var(--text)}
+.calc-val.inc{color:var(--accent)}
+.admin-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--border)}
+.atbtn{padding:6px 12px;border-radius:4px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.atbtn.primary{background:var(--accent);color:#000;border:none}
+.atbtn.danger{background:transparent;color:#ff6b6b;border:1px solid #ff3d3d}
+.save-status{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--green);margin-left:auto;opacity:0;transition:opacity .4s}
+.save-status.show{opacity:1}
+
+/* TABS */
+.tabs{display:flex;gap:3px;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px;overflow-x:auto;}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:8px 14px;text-align:center;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-radius:6px;color:var(--muted);white-space:nowrap;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation}
+.tab.active{background:var(--accent);color:#000}
+.tab-section{display:none}
+.tab-section.active{display:block}
+
+/* SECTION LABEL */
+.sec-label{font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--muted);padding-left:9px;border-left:2px solid var(--accent);margin-bottom:8px;margin-top:20px}
+.sec-label:first-child{margin-top:0}
+.badge-hyd{display:inline-block;font-size:8px;font-weight:700;background:#1a3d10;color:#8fd470;padding:1px 5px;border-radius:2px;margin-left:4px;letter-spacing:1px;vertical-align:middle}
+.badge-hot{display:inline-block;font-size:8px;font-weight:700;background:var(--accent2);color:#fff;padding:1px 5px;border-radius:2px;margin-left:4px;letter-spacing:1px;vertical-align:middle}
+
+/* ── DESKTOP TABLE ─────────────────────────────────────────── */
+.table-outer{width:100%;margin-bottom:4px}
+table.price-table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+/* Fixed col widths: Model 20% Hash 9% Power 9% Eff 7% Yield 13% Elec 11% Profit 12% Price 12% Payback 9% */
+table.price-table col:nth-child(1){width:20%}
+table.price-table col:nth-child(2){width:9%}
+table.price-table col:nth-child(3){width:9%}
+table.price-table col:nth-child(4){width:7%}
+table.price-table col:nth-child(5){width:13%}
+table.price-table col:nth-child(6){width:11%}
+table.price-table col:nth-child(7){width:12%}
+table.price-table col:nth-child(8){width:12%}
+table.price-table col:nth-child(9){width:9%}
+table.price-table thead tr{background:var(--bg3);border-bottom:1px solid var(--border)}
+table.price-table th{padding:7px 8px;text-align:left;font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:normal}
+table.price-table th.profit-th{background:rgba(98,170,70,.04);border-left:1px solid rgba(98,170,70,.15)}
+table.price-table th.price-th{background:rgba(98,170,70,.04);border-left:1px solid rgba(98,170,70,.15)}
+table.price-table th.payback-th{background:rgba(74,138,51,.04);border-left:1px solid rgba(74,138,51,.12)}
+table.price-table td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+table.price-table td.profit-td{background:rgba(98,170,70,.02);border-left:1px solid rgba(98,170,70,.08)}
+table.price-table td.price-td{background:rgba(98,170,70,.02);border-left:1px solid rgba(98,170,70,.08)}
+table.price-table td.payback-td{background:rgba(74,138,51,.02);border-left:1px solid rgba(74,138,51,.06)}
+table.price-table tbody tr:hover td{background:rgba(255,255,255,.02)}
+
+.model-name{font-family:'Rajdhani',sans-serif;font-weight:700;color:#fff;font-size:13px;display:block}
+.model-sub{font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:1px;display:block}
+.spec-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);display:block}
+.yield-coin{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#8fd470;display:block}
+.yield-usd{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);display:block}
+.yield-rub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);display:block}
+.elec-cost-kwh{font-family:'JetBrains Mono',monospace;font-size:11px;color:#4a8a33;font-weight:700;display:block}
+.elec-cost-rub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);display:block}
+.elec-cost-usd{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);display:block}
+.profit-usd{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;display:block}
+.profit-usd.pos{color:var(--green)}.profit-usd.neg{color:var(--red)}
+.profit-rub{font-family:'JetBrains Mono',monospace;font-size:10px;display:block}
+.profit-rub.pos{color:rgba(98,170,70,.7)}.profit-rub.neg{color:rgba(192,57,43,.7)}
+.price-line{display:block;padding:1px 0}
+.price-excl{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--accent);display:block}
+.price-incl{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:rgba(98,170,70,.6);display:block}
+.price-tag{font-size:9px;font-weight:400;letter-spacing:1px;color:var(--muted);text-transform:uppercase;display:inline}
+.price-na{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.payback-line{display:block;padding:1px 0}
+.payback-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--accent);display:block}
+.payback-label{font-size:9px;font-weight:500;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+
+/* ── MOBILE CARDS (shown below 700px) ─────────────────────── */
+.card-list{display:none;flex-direction:column;gap:10px;margin-bottom:8px;width:100%}
+.mcard{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.mcard-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.mcard-name{font-size:14px;font-weight:700;color:#fff;line-height:1.2}
+.mcard-maker{font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+.mcard-hash{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap}
+.mcard-specs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:10px}
+.mcard-spec-label{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.mcard-spec-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--text)}
+.mcard-spec-val.green{color:var(--accent)}
+.mcard-spec-val.gold{color:#8fd470}
+.mcard-spec-val.red{color:var(--red)}
+.mcard-spec-val.dim{color:var(--muted)}
+.mcard-price{display:flex;justify-content:space-between;align-items:flex-end}
+.mcard-price-left{}
+.mcard-price-ex{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent)}
+.mcard-price-in{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(98,170,70,.6);margin-top:2px}
+.mcard-price-na{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)}
+.mcard-payback{text-align:right}
+.mcard-payback-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--accent)}
+.mcard-payback-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* CONTACTS */
+.contacts-section{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:36px 20px;text-align:center;margin-top:40px;position:relative;overflow:hidden}
+.contacts-section::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.contacts-section h2{font-size:22px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;margin-bottom:6px}
+.contacts-section p{font-size:12px;color:var(--muted);letter-spacing:2px;margin-bottom:24px}
+.contact-grid{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.contact-card{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:14px 20px;min-width:150px}
+.contact-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.contact-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--text)}
+
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:16px;text-align:center;font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+
+/* ── RESPONSIVE ────────────────────────────────────────────── */
+@media(max-width:700px){
+  .table-outer{display:none!important}
+  .card-list{display:flex!important;flex-direction:column!important;gap:10px!important}
+  .info-bar{display:none}
+  .main{padding:16px 10px 40px}
+  .admin-model-row{grid-template-columns:1fr}
+  .gp-grid{grid-template-columns:1fr 1fr}
+  .contacts-section{padding:24px 12px}
+  .contact-grid{flex-direction:column;align-items:stretch}
+  .contact-card{min-width:0}
+  /* Ticker: две строки, все данные видны */
+  .ticker-bar{padding:5px 12px;gap:6px 12px}
+  .ticker-item{font-size:10px;gap:3px}
+  .ticker-updated{font-size:9px}
+  /* Elec bar */
+  .elec-bar{gap:8px;padding:8px 12px;justify-content:flex-start}
+  .elec-sep{display:none}
+}
+  .info-bar{display:none}
+  .main{padding:16px 10px 40px}
+  .admin-model-row{grid-template-columns:1fr}
+  .gp-grid{grid-template-columns:1fr 1fr}
+  .contacts-section{padding:24px 12px}
+  .contact-grid{flex-direction:column;align-items:stretch}
+  .contact-card{min-width:0}
+}
+@media(max-width:580px){
+  .table-outer{display:none!important}
+  .card-list{display:flex!important;flex-direction:column!important;gap:10px!important}
+}
+@media(max-width:480px){
+  nav{backdrop-filter:none;-webkit-backdrop-filter:none}
+  .hero{min-height:0;padding:80px 16px 32px}
+  .hero h1{font-size:clamp(28px,10vw,44px);letter-spacing:1px}
+  .hero h1 .d{font-size:12px}
+  .hero-stats{gap:12px}
+  .stat-num{font-size:18px}
+  nav{padding:0 10px}
+  .nav-links a:not(.nav-cta){display:none}
+  /* Ticker компакт */
+  .ticker-bar{padding:5px 10px;gap:6px 14px}
+  .ticker-item{font-size:10px;gap:4px}
+  .ticker-sym{font-size:8px;letter-spacing:0}
+  /* Кнопка обновления меньше */
+  .refresh-btn-yield{font-size:9px;padding:3px 8px;letter-spacing:.5px}
+  #ticker-date{font-size:9px}
+  /* Elec bar в ряд */
+  .elec-bar{gap:6px;padding:6px 10px}
+  .elec-lightning{font-size:14px}
+  .elec-group-label{font-size:8px}
+  .elec-input{font-size:12px;padding:3px 6px;width:58px}
+  .elec-unit{font-size:9px}
+  .uptime-note{font-size:9px;max-width:55px}
+}
+
+.mcard-footer{padding-top:10px;border-top:1px solid var(--border);margin-top:10px}
+.mcard-footer-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0}
+.mcard-footer-row+.mcard-footer-row{border-top:1px solid rgba(255,255,255,.05)}
+.mcard-price-na{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);font-style:italic}
+.mcard-price-val{font-family:"JetBrains Mono",monospace;font-weight:700;color:#62AA46;font-size:14px}
+.mcard-price-val.inc{font-family:"JetBrains Mono",monospace;font-weight:700;color:#62AA46;font-size:14px}
+.mcard-price-tag{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.mcard-price-label{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.mpb-val{font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:700;color:#62AA46}
+.mpb-val.inc{font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:700;color:#62AA46}
+.mpb-val.na{color:var(--muted);font-size:11px;font-style:italic;font-weight:400}
+.mpb-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.sl{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.sv{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:700;color:var(--text)}
+.sv.gold{color:#8fd470}.sv.green{color:#62AA46}.sv.red{color:#c0392b}.sv.dim{color:var(--muted)}
+
+
+/* Чекбокс видимости модели */
+.vis-check{width:15px;height:15px;cursor:pointer;accent-color:#62AA46;flex-shrink:0;margin-top:2px}
+
+/* ── EXPORT MODAL ─────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;position:relative}
+.modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:10px 10px 0 0}
+.modal-header{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.modal-title{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff;flex:1}
+.modal-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;line-height:1;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.modal-close:hover{color:#fff;background:var(--dim)}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-section-label{font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--accent);padding-left:8px;border-left:2px solid var(--accent);margin-bottom:10px;margin-top:14px}
+.modal-section-label:first-child{margin-top:0}
+.modal-check-row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:5px;cursor:pointer;transition:background .15s}
+.modal-check-row:hover{background:rgba(255,255,255,.04)}
+.modal-check-row input[type=checkbox]{width:15px;height:15px;accent-color:#62AA46;cursor:pointer;flex-shrink:0}
+.modal-check-name{font-size:12px;font-weight:600;color:var(--text);flex:1}
+.modal-check-sub{font-size:10px;color:var(--muted);margin-left:auto;font-family:"JetBrains Mono",monospace;white-space:nowrap}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.modal-select-all{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--muted);cursor:pointer;text-transform:uppercase;background:none;border:none;padding:0}
+.modal-select-all:hover{color:var(--accent)}
+.modal-export-btn{background:var(--accent);color:#000;border:none;font-family:"Rajdhani",sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 20px;border-radius:6px;cursor:pointer;margin-left:auto}
+.modal-export-btn:hover{opacity:.9}
+.modal-count{font-size:10px;color:var(--muted);font-family:"JetBrains Mono",monospace}
+@media(max-width:480px){.modal-box{max-height:95vh}.modal-check-sub{display:none}}
+
+.admin-page{max-width:1200px;margin:0 auto;padding:24px 16px 60px}
+.admin-page .admin-panel{display:block!important;border-radius:8px;border:1px solid var(--accent);margin-bottom:20px}
+.admin-page .admin-toggle{display:none!important}
+.preview-label{font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--muted);padding:16px 0 10px;border-top:1px solid var(--border);margin-top:20px}
+.logout-btn{background:transparent;border:1px solid #c0392b44;color:#c0392b;font-family:"Rajdhani",sans-serif;font-size:10px;font-weight:600;letter-spacing:1px;padding:5px 12px;border-radius:4px;cursor:pointer;text-transform:uppercase}
+.logout-btn:hover{border-color:#c0392b;background:rgba(192,57,43,.1)}
+.admin-back-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:"Rajdhani",sans-serif;font-size:10px;font-weight:600;letter-spacing:1px;padding:5px 12px;border-radius:4px;cursor:pointer;text-transform:uppercase;text-decoration:none;display:inline-block}
+.admin-back-btn:hover{border-color:var(--accent);color:var(--accent)}
+.admin-section{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden}
+.admin-section-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.admin-section-header:hover{background:rgba(255,255,255,.02)}
+.admin-section-title{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text);flex:1}
+.admin-section-chevron{color:var(--muted);font-size:12px;transition:transform .25s;flex-shrink:0}
+.admin-section-chevron.open{transform:rotate(180deg)}
+.admin-section-body{display:none;border-top:1px solid var(--border)}
+.admin-section-body.open{display:block}
+.drag-handle{cursor:grab;color:var(--muted);font-size:14px;padding:0 6px;flex-shrink:0;user-select:none;line-height:1}
+.drag-handle:active{cursor:grabbing}
+.admin-model-row.dragging{opacity:.4;background:var(--dim)}
+.admin-model-row.drag-over{border-top:2px solid var(--accent)}
+.models-toolbar{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(98,170,70,.03)}
+.models-toolbar-btn{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--muted);cursor:pointer;background:none;border:none;text-transform:uppercase;padding:0}
+.models-toolbar-btn:hover{color:var(--accent)}
+.models-toolbar-sep{width:1px;height:12px;background:var(--border)}
+.login-overlay{position:fixed;inset:0;background:rgba(10,12,16,.97);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:40px 36px;width:100%;max-width:360px;text-align:center;position:relative}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:12px 12px 0 0}
+.login-logo{font-size:15px;font-weight:700;letter-spacing:3px;color:var(--accent);margin-bottom:4px}
+.login-logo span{color:#fff}
+.login-subtitle{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:28px}
+.login-label{display:block;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;text-align:left}
+.login-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:"JetBrains Mono",monospace;font-size:16px;padding:11px 14px;border-radius:6px;outline:none;box-sizing:border-box;margin-bottom:16px}
+.login-input:focus{border-color:var(--accent)}
+.login-btn{width:100%;background:var(--accent);color:#000;border:none;font-family:"Rajdhani",sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:12px;border-radius:6px;cursor:pointer}
+.login-btn:hover{opacity:.88}
+.login-error{font-size:11px;color:#e74c3c;margin-top:12px;min-height:18px;font-family:"JetBrains Mono",monospace}
+.login-hint{font-size:9px;color:var(--dim);margin-top:18px;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">VEKUS <span>MINING</span></div>
+    <div class="login-subtitle">Панель управления</div>
+    <label class="login-label" for="adminPassword">Пароль</label>
+    <input class="login-input" id="adminPassword" type="password" placeholder="Введите пароль" onkeydown="if(event.key==='Enter')checkPassword()">
+    <button class="login-btn" onclick="checkPassword()">Войти</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-hint">Доступ только для администратора</div>
+  </div>
+</div>
+<nav>
+  <div class="nav-logo">VEKUS <span>MINING</span></div>
+  <div class="nav-links">
+    <button class="export-btn" onclick="openExportModal('excel')">⬇ Excel</button>
+    <button class="export-btn" onclick="openExportModal('pdf')">⬇ PDF</button>
+    <a href="index.html" class="admin-back-btn">← Прайс</a>
+    <button class="logout-btn" onclick="logout()">Выйти</button>
+  </div>
+</nav>
+<div class="ticker-bar">
+  <div class="ticker-item"><span class="ticker-sym">BTC</span><span class="ticker-usd" id="t-btc-usd">$78 665</span><span class="ticker-dot"></span><span class="ticker-rub" id="t-btc-rub">5 879 738 ₽</span></div>
+  <div class="ticker-item"><span class="ticker-sym">LTC</span><span class="ticker-usd" id="t-ltc-usd">$55.46</span><span class="ticker-dot"></span><span class="ticker-rub" id="t-ltc-rub">4 148 ₽</span></div>
+  <div class="ticker-item"><span class="ticker-sym">DOGE</span><span class="ticker-usd" id="t-doge-usd">$0.1110</span><span class="ticker-dot"></span><span class="ticker-rub" id="t-doge-rub">8.30 ₽</span></div>
+  <div class="ticker-item"><span class="ticker-sym">ZEC</span><span class="ticker-usd" id="t-zec-usd">$390</span><span class="ticker-dot"></span><span class="ticker-rub" id="t-zec-rub">29 172 ₽</span></div>
+  <div class="ticker-item"><span class="ticker-sym">USD/RUB</span><span class="ticker-rub" id="t-usdrub">74.80 ₽</span></div>
+  <div class="ticker-updated">
+  <span id="ticker-date">Загрузка...</span>
+  <button class="refresh-btn-yield" id="yieldBtn" onclick="refreshAll()" title="Обновить курсы и доходность"><span class="btn-icon" id="btnIcon">↻</span><span id="btnLabel">Курсы / Доходность</span></button>
+</div>
+</div>
+
+<div class="info-bar">
+  <div class="info-item"><div class="info-dot"></div>Только оригинальное оборудование</div>
+  <div class="info-item"><div class="info-dot"></div>Гарантия от производителя</div>
+  <div class="info-item"><div class="info-dot"></div>Доставка по России и СНГ</div>
+  <div class="info-item"><div class="info-dot"></div>Цены в рублях</div>
+</div>
+
+<div class="elec-bar">
+  <span class="elec-lightning">⚡</span>
+  <div class="elec-input-group">
+    <div class="elec-group-label">Свой тариф</div>
+    <div class="elec-input-row">
+      <input class="elec-input" id="elecRate" type="number" value="5.20" min="0.5" max="50" step="0.1" oninput="onElecChange()">
+      <span class="elec-unit">₽/кВт·ч</span>
+    </div>
+  </div>
+  <div class="elec-sep"></div>
+  <div class="elec-input-group">
+    <div class="elec-group-label">Аптайм</div>
+    <div class="elec-input-row">
+      <input class="elec-input" id="uptimePct" type="number" value="100" min="1" max="100" step="1" oninput="onUptimeChange()" style="width:60px">
+      <span class="elec-unit">%</span>
+      <span class="uptime-note" id="uptimeDays">30 дн/мес</span>
+    </div>
+  </div>
+</div>
+<div class="admin-page">
+<div class="admin-section">
+  <div class="admin-section-header" onclick="toggleSection('sec-global')">
+    <span style="font-size:15px">⚙️</span>
+    <div class="admin-section-title">Глобальные параметры и формула цены</div>
+    <span class="admin-section-chevron open" id="sec-global-chev" class="admin-section-chevron open">▼</span>
+  </div>
+  <div class="admin-section-body open" id="sec-global-body" class="admin-section-body open">
+<div class="global-params">
+      <div class="global-params-title">Глобальные параметры (по умолчанию для всех моделей)</div>
+      <div class="gp-grid">
+        <div class="gp-field"><div class="gp-label">Курс USD</div><input class="gp-input" id="gp-usdrate" type="number" value="74.80" step="0.01" oninput="recalcAll()"><div class="gp-unit">₽ за 1 USD</div></div>
+        <div class="gp-field"><div class="gp-label">Комиссия USD</div><input class="gp-input" id="gp-transfer" type="number" value="3" step="0.1" oninput="recalcAll()"><div class="gp-unit">%</div></div>
+        <div class="gp-field"><div class="gp-label">Логистика</div><input class="gp-input" id="gp-logistics" type="number" value="150" step="10" oninput="recalcAll()"><div class="gp-unit">USD</div></div>
+        <div class="gp-field"><div class="gp-label">Наценка</div><input class="gp-input" id="gp-markup" type="number" value="15" step="0.5" oninput="recalcAll()"><div class="gp-unit">%</div></div>
+        <div class="gp-field"><div class="gp-label">НДС</div><input class="gp-input" id="gp-vat" type="number" value="20" step="0.5" oninput="recalcAll()"><div class="gp-unit">%</div></div>
+        <div class="gp-formula">Цена без НДС = (USD × (1+Комиссия%) + Логистика) × Курс × (1+Наценка%)<br>Цена с НДС = Цена_без_НДС × (1+НДС%)</div>
+      </div>
+    </div>
+
+    <!-- Google Sheets -->
+    <div style="padding:14px 16px;border-top:1px solid var(--border)">
+      <div class="global-params-title" style="margin-bottom:10px">Google Sheets синхронизация</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5">
+        Вставьте URL Netlify Function: https://ВАШ_САЙТ.netlify.app/.netlify/functions/prices
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div class="gp-field" style="flex:1;min-width:260px">
+          <div class="gp-label" style="margin-bottom:4px">Ссылка на таблицу (CSV)</div>
+          <input class="gp-input" id="gs-url-input" type="text"
+            placeholder="https://ВАШ_САЙТ.netlify.app/.netlify/functions/prices"
+            style="font-size:10px;font-weight:400;letter-spacing:0;width:100%;color:var(--text)"
+            oninput="saveGsUrl(this.value)">
+        </div>
+        <button class="atbtn primary" onclick="syncFromGoogleSheets(true)" style="height:34px;white-space:nowrap;flex-shrink:0">&#8635; Синхронизировать</button>
+      </div>
+      <div id="gs-status" style="margin-top:6px;font-size:10px;font-family:'JetBrains Mono',monospace;min-height:16px;color:var(--muted)"></div>
+    </div>
+
+  </div>
+</div>
+<div class="admin-section">
+  <div class="admin-section-header" onclick="toggleSection('sec-models')">
+    <span style="font-size:15px">■</span>
+    <div class="admin-section-title">Цены и видимость моделей</div>
+    <span class="admin-section-chevron open" id="sec-models-chev" class="admin-section-chevron open">▼</span>
+  </div>
+  <div class="admin-section-body open" id="sec-models-body" class="admin-section-body open">
+    <div id="adminModelList"></div>
+    <div class="admin-toolbar">
+      <button class="atbtn primary" onclick="saveAdminData()">Сохранить</button>
+      <button class="atbtn danger" onclick="clearAdminData()">Сбросить</button>
+      <span class="save-status" id="saveStatus">✓ Сохранено</span>
+    </div>
+  </div>
+</div>
+<div class="admin-section">
+  <div class="admin-section-header" onclick="toggleSection('sec-catalog')">
+    <span style="font-size:15px">+</span>
+    <div class="admin-section-title">Добавить устройство из каталога</div>
+    <span class="admin-section-chevron" id="sec-catalog-chev">▼</span>
+  </div>
+  <div class="admin-section-body" id="sec-catalog-body" class="admin-section-body" style="padding:14px 16px">
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px"><div class="gp-label" style="margin-bottom:4px">Поиск</div><input type="text" id="catalog-search" class="gp-input" placeholder="Название..." oninput="filterCatalog()" autocomplete="off" style="width:100%"></div>
+      <div style="flex:1;min-width:220px"><div class="gp-label" style="margin-bottom:4px">Устройство</div><select id="catalog-select" class="gp-input" style="width:100%;height:34px;cursor:pointer"><option value="">— выберите —</option></select></div>
+      <button class="atbtn primary" onclick="addFromCatalog(document.getElementById('catalog-select').value)" style="height:34px">+ Добавить</button>
+    </div>
+    <div id="catalog-status" style="margin-top:6px;font-size:11px;font-family:JetBrains Mono,monospace;min-height:16px"></div>
+  </div>
+</div>
+  <div class="preview-label">Предпросмотр прайс-листа</div>
+  <div class="tabs" id="tabsBar">
+    <div class="tab active" onclick="sw('btc')">SHA-256 · Bitcoin</div>
+    <div class="tab" onclick="sw('scrypt')">Scrypt · LTC/DOGE</div>
+    <div class="tab" onclick="sw('zec')">Equihash · ZEC</div>
+    <div class="tab" onclick="sw('microbt')">MicroBT · WhatsMiner</div>
+  </div>
+  
+    <div class="tab" id="tab-btn-scrypt" onclick="sw('scrypt')">Scrypt · LTC/DOGE</div>
+    <div class="tab" id="tab-btn-zec" onclick="sw('zec')">Equihash · ZEC</div>
+    <div class="tab" id="tab-btn-microbt" onclick="sw('microbt')">MicroBT · WhatsMiner</div>
+  </div>
+
+<div class="tab-section active" id="tab-btc"><div class="sec-label">Antminer S21 &mdash; воздушное охлаждение</div><div class="table-outer"><table class="price-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Модель</th><th>Хешрейт</th><th>Потребление</th><th>Эфф.</th><th>Добыча / сутки</th><th>&#9889; ЭЭ / сутки</th><th class="profit-th">Прибыль / сутки</th><th class="price-th">Цена, руб.</th><th class="payback-th">Окупаемость</th></tr></thead><tbody id="body-btc-air"></tbody></table></div><div class="card-list" id="cards-btc-air"><div class="mcard" data-id="s21xp"><div class="mcard-header"><div><div class="mcard-name">Antminer S21 XP<span class="badge-hot">XIT</span></div><div class="mcard-maker">Bitmain · SHA-256</div></div><div class="mcard-hash">270 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">3 645 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">13.5 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000123 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$9.64 / 721 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">455 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$3.56</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-s21xp">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-s21xp">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-s21xp"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-s21xp">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="s21pro"><div class="mcard-header"><div><div class="mcard-name">Antminer S21 Pro</div><div class="mcard-maker">Bitmain · SHA-256</div></div><div class="mcard-hash">234 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">3 510 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">15.0 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000109 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$8.55 / 640 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">438 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$2.69</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-s21pro">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-s21pro">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-s21pro"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-s21pro">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="s21plus"><div class="mcard-header"><div><div class="mcard-name">Antminer S21+</div><div class="mcard-maker">Bitmain · SHA-256</div></div><div class="mcard-hash">235 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">3 878 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">16.5 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000105 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$8.26 / 618 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">484 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$1.79</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-s21plus">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-s21plus">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-s21plus"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-s21plus">—</span> <span class="mpb-label">с НДС</span></div></div></div></div></div><div class="sec-label">Antminer S21 &mdash; гидро-охлаждение <span class="badge-hyd">HYDRO</span></div><div class="table-outer"><table class="price-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Модель</th><th>Хешрейт</th><th>Потребление</th><th>Эфф.</th><th>Добыча / сутки</th><th>&#9889; ЭЭ / сутки</th><th class="profit-th">Прибыль / сутки</th><th class="price-th">Цена, руб.</th><th class="payback-th">Окупаемость</th></tr></thead><tbody id="body-btc-hyd"></tbody></table></div><div class="card-list" id="cards-btc-hyd"><div class="mcard" data-id="s21xphyd"><div class="mcard-header"><div><div class="mcard-name">Antminer S21 XP Hyd<span class="badge-hot">XIT</span><span class="badge-hyd">HYDRO</span></div><div class="mcard-maker">Bitmain · SHA-256 · Hydro</div></div><div class="mcard-hash">473 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">5 676 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">12.0 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000234 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$18.40 / 1 376 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">708 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$8.93</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-s21xphyd">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-s21xphyd">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-s21xphyd"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-s21xphyd">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="s21plushyd395"><div class="mcard-header"><div><div class="mcard-name">Antminer S21+ Hyd 395T<span class="badge-hyd">HYDRO</span></div><div class="mcard-maker">Bitmain · SHA-256 · Hydro</div></div><div class="mcard-hash">395 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">5 925 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">15.0 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000196 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$15.38 / 1 150 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">739 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$5.49</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-s21plushyd395">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-s21plushyd395">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-s21plushyd395"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-s21plushyd395">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="s21plushyd358"><div class="mcard-header"><div><div class="mcard-name">Antminer S21+ Hyd 358T<span class="badge-hyd">HYDRO</span></div><div class="mcard-maker">Bitmain · SHA-256 · Hydro</div></div><div class="mcard-hash">358 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">5 370 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">15.0 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000177 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$13.93 / 1 042 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">670 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$4.97</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-s21plushyd358">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-s21plushyd358">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-s21plushyd358"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-s21plushyd358">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="s21plushyd338"><div class="mcard-header"><div><div class="mcard-name">Antminer S21+ Hyd 338T<span class="badge-hyd">HYDRO</span></div><div class="mcard-maker">Bitmain · SHA-256 · Hydro</div></div><div class="mcard-hash">338 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">5 070 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">15.0 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000167 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$13.15 / 984 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">633 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$4.69</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-s21plushyd338">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-s21plushyd338">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-s21plushyd338"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-s21plushyd338">—</span> <span class="mpb-label">с НДС</span></div></div></div></div></div><div class="sec-label">Antminer S19 &mdash; предыдущее поколение</div><div class="table-outer"><table class="price-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Модель</th><th>Хешрейт</th><th>Потребление</th><th>Эфф.</th><th>Добыча / сутки</th><th>&#9889; ЭЭ / сутки</th><th class="profit-th">Прибыль / сутки</th><th class="price-th">Цена, руб.</th><th class="payback-th">Окупаемость</th></tr></thead><tbody id="body-btc-s19"></tbody></table></div><div class="card-list" id="cards-btc-s19"><div class="mcard" data-id="s19xpplushyd"><div class="mcard-header"><div><div class="mcard-name">Antminer S19XP+ Hyd<span class="badge-hyd">HYDRO</span></div><div class="mcard-maker">Bitmain · SHA-256 · Hydro</div></div><div class="mcard-hash">293 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">5 402 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">18.4 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000133 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$10.47 / 783 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">674 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$1.46</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-s19xpplushyd">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-s19xpplushyd">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-s19xpplushyd"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-s19xpplushyd">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="s19kpro"><div class="mcard-header"><div><div class="mcard-name">Antminer S19k Pro</div><div class="mcard-maker">Bitmain · SHA-256</div></div><div class="mcard-hash">120 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">2 760 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">23.0 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000054 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$4.22 / 316 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">344 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv red" data-field="profit">$-0.38</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-s19kpro">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-s19kpro">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-s19kpro"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-s19kpro">—</span> <span class="mpb-label">с НДС</span></div></div></div></div></div></div><div class="tab-section" id="tab-scrypt"><div class="sec-label">Antminer L &mdash; Scrypt &middot; LTC / DOGE</div><div class="table-outer"><table class="price-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Модель</th><th>Хешрейт</th><th>Потребление</th><th>Эфф.</th><th>Добыча / сутки</th><th>&#9889; ЭЭ / сутки</th><th class="profit-th">Прибыль / сутки</th><th class="price-th">Цена, руб.</th><th class="payback-th">Окупаемость</th></tr></thead><tbody id="body-scrypt"></tbody></table></div><div class="card-list" id="cards-scrypt"><div class="mcard" data-id="l11"><div class="mcard-header"><div><div class="mcard-name">Antminer L11<span class="badge-hot">XIT</span></div><div class="mcard-maker">Bitmain · Scrypt</div></div><div class="mcard-hash">20 GH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">3 680 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">184 J/G</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.1778 LTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$9.86 / 738 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">459 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$3.72</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-l11">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-l11">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-l11"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-l11">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="l9"><div class="mcard-header"><div><div class="mcard-name">Antminer L9</div><div class="mcard-maker">Bitmain · Scrypt</div></div><div class="mcard-hash">16 GH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">3 360 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">210 J/G</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.1423 LTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$7.89 / 590 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">419 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$2.28</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-l9">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-l9">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-l9"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-l9">—</span> <span class="mpb-label">с НДС</span></div></div></div></div></div></div><div class="tab-section" id="tab-zec"><div class="sec-label">Antminer Z15 Pro &mdash; Equihash &middot; ZEC / ZEN</div><div class="table-outer"><table class="price-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Модель</th><th>Хешрейт</th><th>Потребление</th><th>Эфф.</th><th>Добыча / сутки</th><th>&#9889; ЭЭ / сутки</th><th class="profit-th">Прибыль / сутки</th><th class="price-th">Цена, руб.</th><th class="payback-th">Окупаемость</th></tr></thead><tbody id="body-zec"></tbody></table></div><div class="card-list" id="cards-zec"><div class="mcard" data-id="z15pro860"><div class="mcard-header"><div><div class="mcard-name">Antminer Z15 Pro 860K<span class="badge-hot">XIT</span></div><div class="mcard-maker">Bitmain · Equihash</div></div><div class="mcard-hash">860 KSol/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">2 850 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">ZEC/ZEN</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.0961 ZEC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$37.48 / 2 804 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">356 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$32.72</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-z15pro860">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-z15pro860">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-z15pro860"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-z15pro860">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="z15pro840"><div class="mcard-header"><div><div class="mcard-name">Antminer Z15 Pro 840K</div><div class="mcard-maker">Bitmain · Equihash</div></div><div class="mcard-hash">840 KSol/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">2 560 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">ZEC/ZEN</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.0939 ZEC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$36.61 / 2 738 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">319 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$32.34</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-z15pro840">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-z15pro840">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-z15pro840"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-z15pro840">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="z15pro820"><div class="mcard-header"><div><div class="mcard-name">Antminer Z15 Pro 820K</div><div class="mcard-maker">Bitmain · Equihash</div></div><div class="mcard-hash">820 KSol/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">2 714 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">ZEC/ZEN</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.0916 ZEC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$35.73 / 2 673 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">339 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$31.20</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-z15pro820">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-z15pro820">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-z15pro820"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-z15pro820">—</span> <span class="mpb-label">с НДС</span></div></div></div></div></div></div><div class="tab-section" id="tab-microbt"><div class="sec-label">WhatsMiner M70 &mdash; новейшее поколение</div><div class="table-outer"><table class="price-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Модель</th><th>Хешрейт</th><th>Потребление</th><th>Эфф.</th><th>Добыча / сутки</th><th>&#9889; ЭЭ / сутки</th><th class="profit-th">Прибыль / сутки</th><th class="price-th">Цена, руб.</th><th class="payback-th">Окупаемость</th></tr></thead><tbody id="body-m70"></tbody></table></div><div class="card-list" id="cards-m70"><div class="mcard" data-id="m70"><div class="mcard-header"><div><div class="mcard-name">WhatsMiner M70<span class="badge-hot">XIT</span></div><div class="mcard-maker">MicroBT · SHA-256</div></div><div class="mcard-hash">224 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">3 248 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">14.5 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000106 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$8.36 / 625 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">405 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$2.94</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-m70">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-m70">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-m70"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-m70">—</span> <span class="mpb-label">с НДС</span></div></div></div></div></div><div class="sec-label">WhatsMiner M6X &mdash; воздушное охлаждение</div><div class="table-outer"><table class="price-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Модель</th><th>Хешрейт</th><th>Потребление</th><th>Эфф.</th><th>Добыча / сутки</th><th>&#9889; ЭЭ / сутки</th><th class="profit-th">Прибыль / сутки</th><th class="price-th">Цена, руб.</th><th class="payback-th">Окупаемость</th></tr></thead><tbody id="body-m6x-air"></tbody></table></div><div class="card-list" id="cards-m6x-air"><div class="mcard" data-id="m61splus"><div class="mcard-header"><div><div class="mcard-name">WhatsMiner M61S+</div><div class="mcard-maker">MicroBT · SHA-256</div></div><div class="mcard-hash">236 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">4 012 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">17.0 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000112 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$8.78 / 657 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">501 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$2.09</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-m61splus">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-m61splus">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-m61splus"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-m61splus">—</span> <span class="mpb-label">с НДС</span></div></div></div></div><div class="mcard" data-id="m60splus"><div class="mcard-header"><div><div class="mcard-name">WhatsMiner M60S+</div><div class="mcard-maker">MicroBT · SHA-256</div></div><div class="mcard-hash">204 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">3 468 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">17.0 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000096 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$7.59 / 568 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">433 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$1.80</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-m60splus">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-m60splus">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-m60splus"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-m60splus">—</span> <span class="mpb-label">с НДС</span></div></div></div></div></div><div class="sec-label">WhatsMiner M63S+ &mdash; гидро <span class="badge-hyd">HYDRO</span></div><div class="table-outer"><table class="price-table"><colgroup><col><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Модель</th><th>Хешрейт</th><th>Потребление</th><th>Эфф.</th><th>Добыча / сутки</th><th>&#9889; ЭЭ / сутки</th><th class="profit-th">Прибыль / сутки</th><th class="price-th">Цена, руб.</th><th class="payback-th">Окупаемость</th></tr></thead><tbody id="body-m6x-hyd"></tbody></table></div><div class="card-list" id="cards-m6x-hyd"><div class="mcard" data-id="m63splus"><div class="mcard-header"><div><div class="mcard-name">WhatsMiner M63S+<span class="badge-hyd">HYDRO</span></div><div class="mcard-maker">MicroBT · SHA-256 · Hydro</div></div><div class="mcard-hash">418 TH/s</div></div><div class="mcard-specs"><div><div class="sl">Потребление</div><div class="sv">7 106 Вт</div></div><div><div class="sl">Эффективность</div><div class="sv">17.0 J/T</div></div><div><div class="sl">Добыча/сутки</div><div class="sv gold" data-field="coins">0.000171 BTC</div></div><div><div class="sl">Доход/сутки</div><div class="sv green" data-field="income">$13.43 / 1 005 ₽</div></div><div><div class="sl">ЭЭ/сутки</div><div class="sv dim" data-field="elec">887 &#8381;</div></div><div><div class="sl">Прибыль/сутки</div><div class="sv green" data-field="profit">+$1.57</div></div></div><div class="mcard-footer"><div class="mcard-price-label">Цена / Окупаемость</div><div class="mcard-footer-row"><div><span class="mcard-price-val" id="mp-ex-m63splus">По запросу</span> <span class="mcard-price-tag">без НДС</span></div><div style="text-align:right"><span class="mpb-val na" id="mpb-ex-m63splus">—</span> <span class="mpb-label">без НДС</span></div></div><div class="mcard-footer-row"><div><span class="mcard-price-val inc" id="mp-in-m63splus"></span> <span class="mcard-price-tag">с НДС</span></div><div style="text-align:right"><span class="mpb-val inc na" id="mpb-in-m63splus">—</span> <span class="mpb-label">с НДС</span></div></div></div></div></div></div>
+</div>
+<footer>© 2026 Vekus Mining Development  ·  Панель администратора</footer>
+<div class="modal-overlay" id="exportModal" style="display:none" onclick="if(event.target===this)closeExportModal()">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title" id="modalTitle">Выбор</div><button class="modal-close" onclick="closeExportModal()">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer"><button class="modal-select-all" onclick="modalSelectAll(true)">Выбрать все</button><button class="modal-select-all" onclick="modalSelectAll(false)">Снять все</button><span class="modal-count" id="modalCount"></span><button class="modal-export-btn" id="modalExportBtn" onclick="runModalExport()">⬇ Скачать</button></div>
+  </div>
+</div>
+<script>
+
+
+// ── RATES ──────────────────────────────────────────────────────
+const RATES = {BTC:78665,LTC:55.46,DOGE:0.111,ZEC:390,USDRUB:74.80};
+const RATES_CACHE_KEY='vekus_rates_v1';
+const RATES_DATE_KEY='vekus_rates_date_v1';
+
+// ── GROSS revenue (USD/day, verified 04.05.2026) ──────────────
+const GROSS = {
+  s21xp:9.64, s21pro:8.55, s21plus:8.26,
+  s21xphyd:18.40, s21plushyd395:15.38, s21plushyd358:13.93, s21plushyd338:13.15,
+  s19xpplushyd:10.47, s19kpro:4.22,
+  l11:9.86, l9:7.89,
+  z15pro860:37.48, z15pro840:36.61, z15pro820:35.73,
+  m70:8.36, m61splus:8.78, m60splus:7.59, m63splus:13.43,
+};
+const MODEL_WATTS = {
+  s21xp:3645,s21pro:3510,s21plus:3878,
+  s21xphyd:5676,s21plushyd395:5925,s21plushyd358:5370,s21plushyd338:5070,
+  s19xpplushyd:5402,s19kpro:2760,
+  l11:3680,l9:3360,
+  z15pro860:2850,z15pro840:2560,z15pro820:2714,
+  m70:3248,m61splus:4012,m60splus:3468,m63splus:7106
+};
+
+// ── MODELS ─────────────────────────────────────────────────────
+const MODELS = {
+  'btc-air':[
+    {id:'s21xp',   name:'Antminer S21 XP',       tags:['hot'],      maker:'Bitmain · SHA-256',        hash:'270 TH/s',  power:'3 645 Вт',eff:'13.5 J/T',sym:'BTC'},
+    {id:'s21pro',  name:'Antminer S21 Pro',       tags:[],           maker:'Bitmain · SHA-256',        hash:'234 TH/s',  power:'3 510 Вт',eff:'15.0 J/T',sym:'BTC'},
+    {id:'s21plus', name:'Antminer S21+',          tags:[],           maker:'Bitmain · SHA-256',        hash:'235 TH/s',  power:'3 878 Вт',eff:'16.5 J/T',sym:'BTC'},
+  ],
+  'btc-hyd':[
+    {id:'s21xphyd',      name:'Antminer S21 XP Hyd',   tags:['hot','hyd'],maker:'Bitmain · SHA-256 · Hydro',hash:'473 TH/s',  power:'5 676 Вт',eff:'12.0 J/T',sym:'BTC'},
+    {id:'s21plushyd395', name:'Antminer S21+ Hyd 395T',tags:['hyd'],      maker:'Bitmain · SHA-256 · Hydro',hash:'395 TH/s',  power:'5 925 Вт',eff:'15.0 J/T',sym:'BTC'},
+    {id:'s21plushyd358', name:'Antminer S21+ Hyd 358T',tags:['hyd'],      maker:'Bitmain · SHA-256 · Hydro',hash:'358 TH/s',  power:'5 370 Вт',eff:'15.0 J/T',sym:'BTC'},
+    {id:'s21plushyd338', name:'Antminer S21+ Hyd 338T',tags:['hyd'],      maker:'Bitmain · SHA-256 · Hydro',hash:'338 TH/s',  power:'5 070 Вт',eff:'15.0 J/T',sym:'BTC'},
+  ],
+  'btc-s19':[
+    {id:'s19xpplushyd', name:'Antminer S19XP+ Hyd', tags:['hyd'], maker:'Bitmain · SHA-256 · Hydro',hash:'293 TH/s',power:'5 402 Вт',eff:'18.4 J/T',sym:'BTC'},
+    {id:'s19kpro',      name:'Antminer S19k Pro',   tags:[],      maker:'Bitmain · SHA-256',        hash:'120 TH/s',power:'2 760 Вт',eff:'23.0 J/T',sym:'BTC'},
+  ],
+  'scrypt':[
+    {id:'l11',name:'Antminer L11',tags:['hot'],maker:'Bitmain · Scrypt',hash:'20 GH/s',power:'3 680 Вт',eff:'184 J/G',sym:'LTC'},
+    {id:'l9', name:'Antminer L9', tags:[],     maker:'Bitmain · Scrypt',hash:'16 GH/s',power:'3 360 Вт',eff:'210 J/G',sym:'LTC'},
+  ],
+  'zec':[
+    {id:'z15pro860',name:'Antminer Z15 Pro 860K',tags:['hot'],maker:'Bitmain · Equihash',hash:'860 KSol/s',power:'2 850 Вт',eff:'ZEC/ZEN',sym:'ZEC'},
+    {id:'z15pro840',name:'Antminer Z15 Pro 840K',tags:[],     maker:'Bitmain · Equihash',hash:'840 KSol/s',power:'2 560 Вт',eff:'ZEC/ZEN',sym:'ZEC'},
+    {id:'z15pro820',name:'Antminer Z15 Pro 820K',tags:[],     maker:'Bitmain · Equihash',hash:'820 KSol/s',power:'2 714 Вт',eff:'ZEC/ZEN',sym:'ZEC'},
+  ],
+  'm70':[{id:'m70',name:'WhatsMiner M70',tags:['hot'],maker:'MicroBT · SHA-256',hash:'224 TH/s',power:'3 248 Вт',eff:'14.5 J/T',sym:'BTC'}],
+  'm6x-air':[
+    {id:'m61splus',name:'WhatsMiner M61S+',tags:[],maker:'MicroBT · SHA-256',hash:'236 TH/s',power:'4 012 Вт',eff:'17.0 J/T',sym:'BTC'},
+    {id:'m60splus',name:'WhatsMiner M60S+',tags:[],maker:'MicroBT · SHA-256',hash:'204 TH/s',power:'3 468 Вт',eff:'17.0 J/T',sym:'BTC'},
+  ],
+  'm6x-hyd':[{id:'m63splus',name:'WhatsMiner M63S+',tags:['hyd'],maker:'MicroBT · SHA-256 · Hydro',hash:'418 TH/s',power:'7 106 Вт',eff:'17.0 J/T',sym:'BTC'}],
+};
+var ALL_MODELS = Object.values(MODELS).flat();
+
+// ── STORAGE KEYS ───────────────────────────────────────────────
+const SK='vekus_admin_v2', EK='vekus_elec_v1', UK='vekus_uptime_v1';
+
+// ── STATE ──────────────────────────────────────────────────────
+let elecRate=5.20, uptimePct=100;
+let adminData = {
+  globalParams:{usdrate:74.80,transfer:3,logistics:150,markup:15,vat:20},
+  models:{}
+};
+let adminOpen=false;
+
+// ── HELPERS ────────────────────────────────────────────────────
+function $(id){return document.getElementById(id);}
+function rub(n){return Math.round(n).toLocaleString('ru-RU');}
+function fmt2(n){return parseFloat(n.toFixed(2));}
+function upFactor(){ return uptimePct/100; }
+function grossUSD(id){ return (GROSS[id]||0)*upFactor(); }
+function elecRUB(id){ return (MODEL_WATTS[id]||0)*24/1000*elecRate*upFactor(); }
+function elecUSD(id){ return elecRUB(id)/RATES.USDRUB; }
+
+// ── PRICE FORMULA ──────────────────────────────────────────────
+function getParam(id,key){
+  const ov=adminData.models[id];
+  if(ov&&ov[key]!==undefined&&ov[key]!==''&&!isNaN(ov[key])) return parseFloat(ov[key]);
+  return parseFloat(adminData.globalParams[key]||0);
+}
+function getBaseUsd(id){
+  const ov=adminData.models[id];
+  if(ov&&ov.baseUsd!==undefined&&ov.baseUsd!==''&&!isNaN(ov.baseUsd)&&parseFloat(ov.baseUsd)>0) return parseFloat(ov.baseUsd);
+  return null;
+}
+function calcPriceRUB(id){
+  var m=adminData.models[id]||{};
+  // Готовые цены от Apps Script — используем напрямую
+  if(m._fromScript){
+    if(!m.priceExVat && !m.priceIncVat) return null;
+    return {exVAT: m.priceExVat||0, incVAT: m.priceIncVat||0};
+  }
+  const b=getBaseUsd(id); if(!b) return null;
+  const ur=getParam(id,'usdrate'), tr=getParam(id,'transfer'),
+        lg=getParam(id,'logistics'), mk=getParam(id,'markup'), vt=getParam(id,'vat');
+  const cost=(b*(1+tr/100)+lg)*ur;
+  const ex=cost*(1+mk/100);
+  const inc=ex*(1+vt/100);
+  return {exVAT:ex,incVAT:inc};
+}
+
+// ── PAYBACK ────────────────────────────────────────────────────
+function paybackMonths(priceRUB,netUperDay){
+  if(!priceRUB||!netUperDay||netUperDay<=0) return null;
+  const r=RATES&&RATES.USDRUB?RATES.USDRUB:74.80;
+  return priceRUB/(netUperDay*r*30);
+}
+function fmtPayback(months){
+  if(months===null) return '—';
+  const days=Math.round(months*30);
+  if(days>=365){ const y=(days/365).toFixed(1); return y+' '+(parseFloat(y)===1?'год':parseFloat(y)<5?'года':'лет'); }
+  return months.toFixed(1)+' мес.';
+}
+
+// ── RENDER TABLE ROW ───────────────────────────────────────────
+function makeRow(m){
+  var tr=document.createElement('tr');
+  var badges='';
+  m.tags.forEach(function(t){
+    if(t==='hyd') badges+='<span class="badge-hyd">HYDRO</span>';
+    else badges+='<span class="badge-hot">ХИТ</span>';
+  });
+  var g=grossUSD(m.id);
+  var coins=RATES[m.sym]?(g/RATES[m.sym]):0;
+  var ecR=elecRUB(m.id), ecU=elecUSD(m.id);
+  var netU=fmt2(g-ecU), netR=netU*RATES.USDRUB;
+  var pr=calcPriceRUB(m.id);
+  var pbEx=fmtPayback(paybackMonths((pr&&pr.exVAT),netU));
+  var pbIn=fmtPayback(paybackMonths((pr&&pr.incVAT),netU));
+  var pos=netU>=0;
+  var posCls=pos?'pos':'neg';
+  var posSign=pos?'+':'';
+  var kwhD=(MODEL_WATTS[m.id]||0)*24/1000;
+  var dec=m.sym==='BTC'?6:4;
+
+  var priceHtml=pr
+    ?('<div class="price-line"><span class="price-excl">'+rub(pr.exVAT)+' ₽</span><span class="price-tag">без НДС</span></div>'
+     +'<div class="price-line"><span class="price-incl">'+rub(pr.incVAT)+' ₽</span><span class="price-tag">с НДС</span></div>')
+    :'<span class="price-na">По запросу</span>';
+
+  var payHtml='<div class="payback-line"><span class="payback-val">'+pbEx+'</span><span class="payback-label">без НДС</span></div>'
+             +'<div class="payback-line"><span class="payback-val">'+pbIn+'</span><span class="payback-label">с НДС</span></div>';
+
+  tr.innerHTML=
+    '<td><span class="model-name">'+m.name+badges+'</span><span class="model-sub">'+m.maker+'</span></td>'
+   +'<td><span class="spec-val">'+m.hash+'</span></td>'
+   +'<td><span class="spec-val">'+m.power+'</span></td>'
+   +'<td><span class="spec-val">'+m.eff+'</span></td>'
+   +'<td><span class="yield-coin">'+coins.toFixed(dec)+' '+m.sym+'</span>'
+       +'<span class="yield-usd">$'+fmt2(g)+' / сут</span>'
+       +'<span class="yield-rub">'+rub(g*RATES.USDRUB)+' ₽ / сут</span></td>'
+   +'<td><span class="elec-cost-kwh">'+kwhD.toFixed(1)+' кВт·ч</span>'
+       +'<span class="elec-cost-rub">-'+rub(ecR)+' ₽ / сут</span>'
+       +'<span class="elec-cost-usd">-$'+fmt2(ecU)+' / сут</span></td>'
+   +'<td class="profit-td"><span class="profit-usd '+posCls+'">'+posSign+' $'+fmt2(netU)+'</span>'
+       +'<span class="profit-rub '+posCls+'">'+posSign+rub(netR)+' ₽</span></td>'
+   +'<td class="price-td">'+priceHtml+'</td>'
+   +'<td class="payback-td">'+payHtml+'</td>';
+  return tr;
+}
+
+// ── RENDER TABLE ROW ───────────────────────────────────────────
+
+
+// ── RENDER ALL ─────────────────────────────────────────────────
+function renderAll(){
+  var hidden = loadHiddenModels();
+  Object.keys(MODELS).forEach(function(g){
+    var visModels = MODELS[g].filter(function(m){ return hidden.indexOf(m.id) < 0; });
+    // Desktop: re-render table rows (only visible)
+    var tbody=$('body-'+g);
+    if(tbody){
+      tbody.innerHTML='';
+      visModels.forEach(function(m){ try{tbody.appendChild(makeRow(m));}catch(e){console.error('[makeRow error]',m.id,e.message);} });
+    }
+    // Mobile: show/hide cards, update visible ones
+    MODELS[g].forEach(function(m){
+      var card=document.querySelector('.mcard[data-id="'+m.id+'"]');
+      var vis = hidden.indexOf(m.id) < 0;
+      if(card) card.style.display = vis ? '' : 'none';
+      if(vis) try{updateCard(m);}catch(e){}
+    });
+  });
+}
+
+function updateCard(m){
+  var g=grossUSD(m.id);
+  var sym=m.sym;
+  var coins=RATES[sym]?(g/RATES[sym]):0;
+  var dec=sym==='BTC'?6:4;
+  var ecR=elecRUB(m.id), ecU=elecUSD(m.id);
+  var netU=fmt2(g-ecU);
+  var pr=calcPriceRUB(m.id);
+  var pbEx=fmtPayback(paybackMonths(pr&&pr.exVAT,netU));
+  var pos=netU>=0;
+  // Price & Payback rows (without VAT / with VAT)
+  var pbIn=pr?fmtPayback(paybackMonths(pr.incVAT,netU)):'—';
+  // Row: без НДС
+  var pEx=$('mp-ex-'+m.id);
+  if(pEx){pEx.textContent=pr?rub(pr.exVAT)+' ₽':'По запросу';pEx.className='mcard-price-val'+(pr?'':' na');}
+  var pbExEl=$('mpb-ex-'+m.id);
+  if(pbExEl){pbExEl.textContent=pbEx;pbExEl.className='mpb-val'+(pbEx==='—'?' na':'');}
+  // Row: с НДС
+  var pIn=$('mp-in-'+m.id);
+  if(pIn){pIn.textContent=pr?rub(pr.incVAT)+' ₽':'';pIn.className='mcard-price-val inc'+(pr?'':' na');}
+  var pbInEl=$('mpb-in-'+m.id);
+  if(pbInEl){pbInEl.textContent=pr?pbIn:'—';pbInEl.className='mpb-val inc'+((!pr||pbIn==='—')?' na':'');}
+    // Specs
+  var card=document.querySelector('.mcard[data-id="'+m.id+'"]');
+  if(!card) return;
+  var vals=card.querySelectorAll('.mcard-spec-val');
+  if(vals[2]) vals[2].textContent=coins.toFixed(dec)+' '+sym;
+  if(vals[3]) vals[3].textContent='$'+fmt2(g);
+  if(vals[4]) vals[4].textContent=rub(ecR)+' ₽';
+  if(vals[5]){
+    vals[5].textContent=(pos?'+':'')+' $'+fmt2(netU);
+    vals[5].className='mcard-spec-val '+(pos?'green':'red');
+  }
+}
+
+// ── UPDATE PROFIT CELLS ────────────────────────────────────────
+
+// ── TABS ───────────────────────────────────────────────────────
+function sw(tab){
+  var names=['btc','scrypt','zec','microbt'];
+  var tabs=document.querySelectorAll('.tab');
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle('active',names[i]===tab);
+  var secs=document.querySelectorAll('.tab-section');
+  for(var j=0;j<secs.length;j++) secs[j].classList.remove('active');
+  var sec=$('tab-'+tab);
+  if(sec) sec.classList.add('active');
+}
+
+// ── ELECTRICITY ────────────────────────────────────────────────
+function onElecChange(){
+  const v=parseFloat($('elecRate').value);
+  if(!isNaN(v)&&v>0){ elecRate=v; try{localStorage.setItem(EK,v);}catch(e){} renderAll(); }
+}
+function onUptimeChange(){
+  const v=Math.min(100,Math.max(1,parseFloat($('uptimePct').value)||100));
+  uptimePct=v;
+  const d=$('uptimeDays'); if(d) d.textContent=(v/100*30).toFixed(1)+' дн/мес';
+  try{localStorage.setItem(UK,v);}catch(e){}
+  renderAll();
+}
+
+// ── ADMIN PANEL ────────────────────────────────────────────────
+function toggleAdmin(){
+  adminOpen=!adminOpen;
+  $('adminPanel').classList.toggle('open',adminOpen);
+  $('adminChevron').classList.toggle('open',adminOpen);
+  $('adminToggle').classList.toggle('closed',!adminOpen);
+}
+
+
+function onAdmChange(id){
+  readAdminFromUI();
+  updateAdminCalc(id);
+  renderAll();
+}
+function updateAdminCalc(id){
+  const r=calcPriceRUB(id);
+  const ex=$('calc-ex-'+id), inc=$('calc-inc-'+id);
+  if(ex) ex.textContent=r?rub(r.exVAT)+' ₽':'—';
+  if(inc) inc.textContent=r?rub(r.incVAT)+' ₽':'—';
+}
+function recalcAll(){
+  readAdminFromUI();
+  ALL_MODELS.forEach(m=>updateAdminCalc(m.id));
+  renderAll();
+}
+function readAdminFromUI(){
+  const g=id=>{const el=document.getElementById(id);return el?el.value:'';};
+  adminData.globalParams={
+    usdrate:  parseFloat(g('gp-usdrate'))||74.80,
+    transfer: parseFloat(g('gp-transfer'))||0,
+    logistics:parseFloat(g('gp-logistics'))||0,
+    markup:   parseFloat(g('gp-markup'))||0,
+    vat:      parseFloat(g('gp-vat'))||20,
+  };
+  ALL_MODELS.forEach(m=>{
+    const v=k=>{const el=document.getElementById('adm-'+m.id+'-'+k);return el?el.value:'';};
+    adminData.models[m.id]={
+      baseUsd:   v('baseusd')===''?undefined:parseFloat(v('baseusd'))||undefined,
+      usdrate:   v('usdrate')===''?undefined:parseFloat(v('usdrate'))||undefined,
+      transfer:  v('transfer')===''?undefined:parseFloat(v('transfer'))||undefined,
+      logistics: v('logistics')===''?undefined:parseFloat(v('logistics'))||undefined,
+      markup:    v('markup')===''?undefined:parseFloat(v('markup'))||undefined,
+      vat:       v('vat')===''?undefined:parseFloat(v('vat'))||undefined,
+    };
+  });
+}
+function saveAdminData(){
+  readAdminFromUI();
+  try{localStorage.setItem(SK,JSON.stringify(adminData));}catch(e){}
+  const s=$('saveStatus'); if(s){s.classList.add('show');setTimeout(function(){s.classList.remove('show');},2500);}
+  renderAll();
+}
+function clearAdminData(){
+  if(!confirm('Сбросить все настройки цен?')) return;
+  adminData={globalParams:{usdrate:74.80,transfer:3,logistics:150,markup:15,vat:20},models:{}};
+  try{localStorage.removeItem(SK);}catch(e){}
+  buildAdminModelList(); renderAll();
+}
+function applyAdminDataToUI(){
+  const gp=adminData.globalParams;
+  const s=(id,v)=>{const el=$(id);if(el)el.value=v;};
+  s('gp-usdrate',gp.usdrate); s('gp-transfer',gp.transfer);
+  s('gp-logistics',gp.logistics); s('gp-markup',gp.markup); s('gp-vat',gp.vat);
+  ALL_MODELS.forEach(m=>{
+    const ov=adminData.models[m.id]||{};
+    const s2=(k,v)=>{const el=document.getElementById('adm-'+m.id+'-'+k);if(el)el.value=v!=null?v:'';};
+    s2('baseusd',ov.baseUsd); s2('usdrate',ov.usdrate); s2('transfer',ov.transfer);
+    s2('logistics',ov.logistics); s2('markup',ov.markup); s2('vat',ov.vat);
+    updateAdminCalc(m.id);
+  });
+}
+function loadStorage(){
+  try{const r=localStorage.getItem(SK);if(r){adminData=JSON.parse(r);}}catch(e){}
+  try{const e=localStorage.getItem(EK);if(e){elecRate=parseFloat(e);const el=$('elecRate');if(el)el.value=elecRate.toFixed(1);}}catch(e){}
+  try{const u=localStorage.getItem(UK);if(u){uptimePct=parseFloat(u);const el=$('uptimePct');if(el)el.value=uptimePct;const d=$('uptimeDays');if(d)d.textContent=(uptimePct/100*30).toFixed(1)+' дн/мес';}}catch(e){}
+}
+
+// ── RATES AUTO-UPDATE ──────────────────────────────────────────
+async function fetchRates(force){
+  force = force || false;
+  var btn=$('refreshBtn');
+  if(btn) btn.textContent='...';
+  var today=new Date().toISOString().slice(0,10);
+  if(!force){
+    try{
+      var cc=localStorage.getItem(RATES_CACHE_KEY);
+      var dd=localStorage.getItem(RATES_DATE_KEY);
+      if(cc&&dd===today){applyRates(JSON.parse(cc),false);if(btn)btn.textContent='↻';return Promise.resolve();}
+    }catch(ex){}
+  }
+  var btc=0,ltc=0,doge=0,zec=0,usdRub=0;
+  // Primary: Coinbase (CORS-friendly)
+  try{
+    var r1=await fetch('https://api.coinbase.com/v2/exchange-rates?currency=USD');
+    if(r1.ok){
+      var d1=await r1.json();
+      var rt=d1.data&&d1.data.rates;
+      if(rt){
+        btc  = rt.BTC  ? Math.round(1/parseFloat(rt.BTC))  : 0;
+        ltc  = rt.LTC  ? parseFloat((1/parseFloat(rt.LTC)).toFixed(2)) : 0;
+        doge = rt.DOGE ? parseFloat((1/parseFloat(rt.DOGE)).toFixed(4)) : 0;
+        zec  = rt.ZEC  ? Math.round(1/parseFloat(rt.ZEC))  : 0;
+      }
+    }
+  }catch(e1){}
+  // USD/RUB
+  try{
+    var r2=await fetch('https://www.cbr-xml-daily.ru/daily_json.js');
+    if(r2.ok){var d2=await r2.json();usdRub=(d2.Valute&&d2.Valute.USD&&d2.Valute.USD.Value)?Math.round(d2.Valute.USD.Value*100)/100:0;}
+  }catch(e2){}
+  // Fallback: CoinGecko
+  if(!btc){
+    try{
+      var r3=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,litecoin,dogecoin,zcash&vs_currencies=usd');
+      if(r3.ok){
+        var d3=await r3.json();
+        btc=(d3.bitcoin&&d3.bitcoin.usd)||0;
+        ltc=(d3.litecoin&&d3.litecoin.usd)||0;
+        doge=(d3.dogecoin&&d3.dogecoin.usd)||0;
+        zec=(d3.zcash&&d3.zcash.usd)||0;
+      }
+    }catch(e3){}
+  }
+  var fresh={BTC:btc||RATES.BTC,LTC:ltc||RATES.LTC,DOGE:doge||RATES.DOGE,ZEC:zec||RATES.ZEC,USDRUB:usdRub||RATES.USDRUB};
+  if(btc||zec){
+    try{localStorage.setItem(RATES_CACHE_KEY,JSON.stringify(fresh));localStorage.setItem(RATES_DATE_KEY,today);}catch(e){}
+    applyRates(fresh,true);
+  } else {
+    var tdd=$('ticker-date');
+    if(tdd) tdd.textContent='Нет соединения';
+    applyRates(RATES,false);
+  }
+  if(btn)btn.textContent='↻';
+}
+
+function applyRates(fresh,flash){
+  Object.assign(RATES,fresh);
+  const fmtN=n=>n<1?n.toFixed(4):n<100?n.toFixed(2):Math.round(n).toLocaleString('ru-RU');
+  const r=(usd)=>Math.round(usd*RATES.USDRUB).toLocaleString('ru-RU');
+  const upd={
+    't-btc-usd':'$'+Math.round(RATES.BTC).toLocaleString('ru-RU'),
+    't-btc-rub':r(RATES.BTC)+' ₽',
+    't-ltc-usd':'$'+fmtN(RATES.LTC),'t-ltc-rub':r(RATES.LTC)+' ₽',
+    't-doge-usd':'$'+RATES.DOGE.toFixed(4),'t-doge-rub':(RATES.DOGE*RATES.USDRUB).toFixed(2)+' ₽',
+    't-zec-usd':'$'+Math.round(RATES.ZEC),'t-zec-rub':r(RATES.ZEC)+' ₽',
+    't-usdrub':RATES.USDRUB.toFixed(2)+' ₽',
+  };
+  Object.keys(upd).forEach(function(id){var el=$(id);if(el)el.textContent=upd[id];});
+  const td=$('ticker-date');
+  if(td){const now=new Date();const mo=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];td.textContent='Обновлено: '+now.getDate()+' '+mo[now.getMonth()]+' '+now.getFullYear()+', '+now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');}
+  renderAll();
+}
+function refreshAll(){
+  var btn = $('yieldBtn');
+  var icon = $('btnIcon');
+  var label = $('btnLabel');
+  if(btn){
+    btn.classList.add('loading');
+    btn.classList.remove('done');
+    btn.disabled = true;
+  }
+  // Run both in parallel, show checkmark when both done
+  var p1 = fetchRates(true);
+  var p2 = fetchMinerstatData();
+  Promise.allSettled([
+    p1 instanceof Promise ? p1 : Promise.resolve(),
+    p2 instanceof Promise ? p2 : Promise.resolve()
+  ]).then(function(){
+    if(btn){
+      btn.classList.remove('loading');
+      btn.classList.add('done');
+      btn.disabled = false;
+      if(icon) icon.textContent = '✓';
+      setTimeout(function(){
+        btn.classList.remove('done');
+        if(icon) icon.textContent = '↻';
+      }, 2500);
+    }
+  });
+}
+
+function scheduleNextMidnight(){
+  const now=new Date(),next=new Date(now);
+  next.setDate(next.getDate()+1);next.setHours(0,1,0,0);
+  var msDelay=next-now;setTimeout(function(){fetchRates(true);scheduleNextMidnight();},msDelay);
+}
+
+// ── EXPORT ─────────────────────────────────────────────────────
+function getAllTableData(){
+  return ALL_MODELS.map(m=>{
+    const g=grossUSD(m.id),ecR=elecRUB(m.id),ecU=elecUSD(m.id);
+    const netU=fmt2(g-ecU),netR=Math.round(netU*RATES.USDRUB);
+    const pr=calcPriceRUB(m.id);
+    const pbEx=pr&&netU>0?Math.round(pr.exVAT/(netU*RATES.USDRUB)):null;
+    const pbIn=pr&&netU>0?Math.round(pr.incVAT/(netU*RATES.USDRUB)):null;
+    return{'Модель':m.name,'Производитель':m.maker,'Хешрейт':m.hash,'Потребление':m.power,'Эффективность':m.eff,'Монета':m.sym,
+      'Добыча монет/сутки':parseFloat((g/RATES[m.sym]||0).toFixed(m.sym==='BTC'?6:4)),
+      'Доход USD/сутки':fmt2(g),'Доход RUB/сутки':Math.round(g*RATES.USDRUB),
+      'ЭЭ RUB/сутки':Math.round(ecR),'ЭЭ USD/сутки':fmt2(ecU),
+      'Прибыль USD/сутки':netU,'Прибыль RUB/сутки':netR,
+      'Цена без НДС (руб)':pr?Math.round(pr.exVAT):'—','Цена с НДС (руб)':pr?Math.round(pr.incVAT):'—',
+      'Окупаемость без НДС (дн)':pbEx||'—','Окупаемость с НДС (дн)':pbIn||'—',
+      'Аптайм %':uptimePct,'Тариф ЭЭ ₽/кВт·ч':elecRate};
+  });
+}
+
+// ── ВИДИМОСТЬ МОДЕЛЕЙ ──────────────────────────────────────────────
+function loadHiddenModels(){
+  try{ return JSON.parse(localStorage.getItem(HIDDEN_MODELS_KEY)||'[]'); }catch(e){ return []; }
+}
+
+function saveHiddenModels(arr){
+  try{ localStorage.setItem(HIDDEN_MODELS_KEY, JSON.stringify(arr)); }catch(e){}
+}
+
+function toggleModelVisibility(id, visible){
+  var hidden = loadHiddenModels();
+  if(visible){
+    hidden = hidden.filter(function(h){ return h !== id; });
+  } else {
+    if(hidden.indexOf(id) < 0) hidden.push(id);
+  }
+  saveHiddenModels(hidden);
+  renderAll();
+}
+
+function isModelVisible(id){
+  var hidden = loadHiddenModels();
+  return hidden.indexOf(id) < 0;
+}
+
+// ── CATALOG UI ────────────────────────────────────────────────────
+var catalogFilter = '';
+
+function populateCatalogSelect(){
+  var sel = document.getElementById('catalog-select');
+  if(!sel) return;
+  while(sel.options.length > 1) sel.remove(1);
+  var filter = catalogFilter.toLowerCase();
+  var added = 0;
+  for(var i=0;i<CATALOG.length;i++){
+    var m = CATALOG[i];
+    if(filter && m.name.toLowerCase().indexOf(filter)<0 && m.maker.toLowerCase().indexOf(filter)<0) continue;
+    var inBase = ALL_MODELS.some(function(ex){ return ex.id===m.id; });
+    var opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name+' ('+m.hash+', '+m.sym+')'+(inBase?' ✓ уже есть':'');
+    if(inBase) opt.style.color='#5a6070';
+    sel.appendChild(opt);
+    added++;
+  }
+  if(added===0&&filter){
+    var opt=document.createElement('option');
+    opt.value='';
+    opt.textContent='Ничего не найдено';
+    sel.appendChild(opt);
+  }
+}
+
+function filterCatalog(){
+  catalogFilter=(document.getElementById('catalog-search')||{}).value||'';
+  populateCatalogSelect();
+}
+
+function exportExcel(){
+  const rows=getAllTableData();
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:28},{wch:24},{wch:12},{wch:12},{wch:12},{wch:8},{wch:18},{wch:16},{wch:18},{wch:14},{wch:14},{wch:18},{wch:18},{wch:20},{wch:18},{wch:24},{wch:22},{wch:10},{wch:16}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Прайс-лист');
+  const meta=[['Vekus Mining Development'],['Дата:',new Date().toLocaleDateString('ru-RU')],['BTC:',RATES.BTC],['LTC:',RATES.LTC],['ZEC:',RATES.ZEC],['USD/RUB:',RATES.USDRUB],['Аптайм:',uptimePct+'%'],['Тариф ЭЭ:',elecRate+' ₽/кВт·ч']];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(meta),'Параметры');
+  XLSX.writeFile(wb,'VekusMining_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+function exportPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const PW=doc.internal.pageSize.width,PH=doc.internal.pageSize.height,ML=10,MR=10;
+  const cyr={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ы':'y','э':'e','ю':'yu','я':'ya','А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ж':'Zh','З':'Z','И':'I','Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U','Ф':'F','Х':'Kh','Ц':'Ts','Ч':'Ch','Ш':'Sh','Щ':'Shch','Ю':'Yu','Я':'Ya'};
+  const tr=s=>String(s).split('').map(c=>cyr[c]||c).join('');
+  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(98,170,70);
+  doc.text('VEKUS MINING DEVELOPMENT',ML,12);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(80,80,80);
+  doc.text('Price-list | '+new Date().toLocaleDateString('ru-RU'),ML,18);
+  doc.text('Uptime: '+uptimePct+'% | EE: '+elecRate+' RUB/kWh | USD/RUB: '+RATES.USDRUB+' | BTC: $'+Math.round(RATES.BTC).toLocaleString('en')+' | LTC: $'+RATES.LTC+' | ZEC: $'+RATES.ZEC,ML,23);
+  const cols=[
+    {key:'Модель',hdr:'Model',w:54},{key:'Хешрейт',hdr:'Hashrate',w:20},{key:'Потребление',hdr:'Power',w:18},
+    {key:'Монета',hdr:'Coin',w:10},{key:'Добыча монет/сутки',hdr:'Coins/day',w:20},
+    {key:'Доход RUB/сутки',hdr:'Rev RUB/day',w:26},{key:'ЭЭ RUB/сутки',hdr:'Elec RUB/day',w:22},
+    {key:'Прибыль RUB/сутки',hdr:'Profit RUB/day',w:26},{key:'Цена без НДС (руб)',hdr:'Price ex.VAT',w:28},
+    {key:'Цена с НДС (руб)',hdr:'Price inc.VAT',w:28},{key:'Окупаемость без НДС (дн)',hdr:'ROI ex.VAT(d)',w:25},
+  ];
+  const rows=getAllTableData();
+  const colStyles={};cols.forEach((c,i)=>{colStyles[i]={cellWidth:c.w};});
+  doc.autoTable({
+    head:[cols.map(c=>c.hdr)],
+    body:rows.map(r=>cols.map(c=>{const v=r[c.key];if(v==='—'||v==null)return '-';if(typeof v==='number')return c.key.includes('монет')?String(v):v.toLocaleString('en');return tr(String(v));})),
+    startY:27,
+    styles:{fontSize:6.5,cellPadding:{top:1.5,right:2,bottom:1.5,left:2},overflow:'ellipsize',valign:'middle'},
+    headStyles:{fillColor:[98,170,70],textColor:[0,0,0],fontStyle:'bold',fontSize:6.5,halign:'center'},
+    alternateRowStyles:{fillColor:[248,252,246]},columnStyles:colStyles,
+    margin:{left:ML,right:MR},tableWidth:'auto',
+    didDrawPage:(data)=>{doc.setFontSize(6);doc.setTextColor(160);doc.text('Vekus Mining Development',ML,PH-4);doc.text('Page '+data.pageNumber,PW-MR-12,PH-4);}
+  });
+  doc.save('VekusMining_'+new Date().toISOString().slice(0,10)+'.pdf');
+}
+
+// ── LIVE PROFITABILITY: mempool.space + Coinbase ─────────────────
+// Без ключей, CORS открыт, бесплатно
+// SHA-256 (BTC): сеть mempool.space → difficulty + block_reward → hashprice $/TH/day
+// Scrypt (LTC):  сетевые константы + курс Coinbase
+// Equihash (ZEC): сетевые константы + курс Coinbase
+
+const LIVE_CACHE_KEY  = 'vekus_live_gross_v1';
+const LIVE_CACHE_DATE = 'vekus_live_date_v1';
+
+// Hashrate устройств
+const MODEL_HASHRATES = {
+  s21xp:270,s21pro:234,s21plus:235,
+  s21xphyd:473,s21plushyd395:395,s21plushyd358:358,s21plushyd338:338,
+  s19xpplushyd:293,s19kpro:120,
+  l11:20,l9:16,          // GH/s для Scrypt
+  z15pro860:860,z15pro840:840,z15pro820:820,  // KSol/s для Equihash
+  m70:224,m61splus:236,m60splus:204,m63splus:418
+};
+
+// Сетевые константы LTC и ZEC (обновляются редко)
+const LTC_BLOCK_REWARD = 6.25;
+const LTC_BLOCK_TIME   = 150;   // секунд
+const ZEC_BLOCK_REWARD = 3.125;
+const ZEC_BLOCK_TIME   = 75;    // секунд
+
+async function fetchMinerstatData(){
+  var results = {};
+
+  try {
+    // ── 1. BTC: mempool.space difficulty-adjustment ──────────────
+    var btcPrice = RATES.BTC || 78665;
+    var netHashEH = 0;
+
+    try {
+      var r1 = await fetch('https://mempool.space/api/v1/difficulty-adjustment');
+      if(r1.ok){
+        var d1 = await r1.json();
+        // currentHashrate в H/s
+        if(d1.currentHashrate) netHashEH = d1.currentHashrate;
+      }
+    } catch(e1){}
+
+    // Если не получили хешрейт — попробуем через hashrate endpoint
+    if(!netHashEH){
+      try {
+        var r1b = await fetch('https://mempool.space/api/v1/mining/hashrate/1d');
+        if(r1b.ok){
+          var d1b = await r1b.json();
+          if(d1b.currentHashrate) netHashEH = d1b.currentHashrate;
+        }
+      } catch(e1b){}
+    }
+
+    // BTC курс из Coinbase (уже есть в RATES, но обновим)
+    try {
+      var rBtc = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=USD');
+      if(rBtc.ok){
+        var dBtc = await rBtc.json();
+        var rt = dBtc.data && dBtc.data.rates;
+        if(rt){
+          if(rt.BTC)  btcPrice = Math.round(1/parseFloat(rt.BTC));
+          var ltcP = rt.LTC  ? parseFloat((1/parseFloat(rt.LTC)).toFixed(2))  : RATES.LTC;
+          var zecP = rt.ZEC  ? Math.round(1/parseFloat(rt.ZEC))               : RATES.ZEC;
+          var dogeP= rt.DOGE ? parseFloat((1/parseFloat(rt.DOGE)).toFixed(4)) : RATES.DOGE;
+          // Обновим глобальные курсы
+          RATES.BTC=btcPrice; RATES.LTC=ltcP; RATES.ZEC=zecP; RATES.DOGE=dogeP;
+          // Обновим тикер
+          applyRates(RATES, false);
+        }
+      }
+    } catch(eCb){}
+
+    // ── BTC hashprice расчёт ──────────────────────────────────────
+    // hashprice ($/TH/day) = 86400 / block_time × block_reward × btcPrice / (network_hash_TH)
+    // network_hashrate в H/s → делим на 1e12 для TH/s
+    var BTC_BLOCK_REWARD = 3.125;
+    var BTC_BLOCK_TIME   = 600; // секунд
+
+    if(netHashEH > 0){
+      var netHashTH = netHashEH / 1e12;  // H/s → TH/s
+      var blocksPerDay = 86400 / BTC_BLOCK_TIME;
+      var btcHashprice = (blocksPerDay * BTC_BLOCK_REWARD * btcPrice) / netHashTH; // $/TH/day
+
+      // SHA-256 устройства
+      ['s21xp','s21pro','s21plus','s21xphyd','s21plushyd395','s21plushyd358',
+       's21plushyd338','s19xpplushyd','s19kpro','m70','m61splus','m60splus','m63splus'
+      ].forEach(function(id){
+        var th = MODEL_HASHRATES[id] || 0;
+        results[id] = Math.round(th * btcHashprice * 100) / 100;
+      });
+
+      var hp = btcHashprice.toFixed(5);
+      var netEH = (netHashEH/1e18).toFixed(1);
+    }
+
+    // ── 2. LTC/DOGE: через сетевые данные + курс ─────────────────
+    // LTC network hashrate: берём через API litecoinspace.org или считаем из difficulty
+    var ltcHashprice = 0;
+    try {
+      // litecoinspace — открытый форк mempool для LTC
+      var rLtc = await fetch('https://litecoinspace.org/api/v1/difficulty-adjustment');
+      if(rLtc.ok){
+        var dLtc = await rLtc.json();
+        var ltcNetGH = dLtc.currentHashrate ? dLtc.currentHashrate / 1e9 : 0; // H/s → GH/s
+        if(ltcNetGH > 0){
+          var ltcBlocksPerDay = 86400 / LTC_BLOCK_TIME;
+          ltcHashprice = (ltcBlocksPerDay * LTC_BLOCK_REWARD * RATES.LTC) / ltcNetGH; // $/GH/day
+          ['l11','l9'].forEach(function(id){
+            var gh = MODEL_HASHRATES[id] || 0;
+            results[id] = Math.round(gh * ltcHashprice * 100) / 100;
+          });
+        }
+      }
+    } catch(eLtc){}
+
+    // ── 3. ZEC: через сетевые данные + курс ──────────────────────
+    try {
+      // zecpages или zcashnetwork — открытые API
+      var rZec = await fetch('https://api.blockchair.com/zcash/stats');
+      if(rZec.ok){
+        var dZec = await rZec.json();
+        var zecData = dZec.data;
+        if(zecData && zecData.hashrate_24h){
+          var zecNetKSol = parseFloat(zecData.hashrate_24h) / 1000; // Sol/s → KSol/s
+          if(zecNetKSol > 0){
+            var zecBlocksPerDay = 86400 / ZEC_BLOCK_TIME;
+            var zecHashprice = (zecBlocksPerDay * ZEC_BLOCK_REWARD * RATES.ZEC) / zecNetKSol;
+            ['z15pro860','z15pro840','z15pro820'].forEach(function(id){
+              var ks = MODEL_HASHRATES[id] || 0;
+              results[id] = Math.round(ks * zecHashprice * 100) / 100;
+            });
+          }
+        }
+      }
+    } catch(eZec){}
+
+    // ── Применяем результаты ──────────────────────────────────────
+    var updated = 0;
+    Object.keys(results).forEach(function(id){
+      if(results[id] > 0){ GROSS[id] = results[id]; updated++; }
+    });
+
+    // Кэшируем
+    try{
+      localStorage.setItem(LIVE_CACHE_KEY, JSON.stringify(results));
+      localStorage.setItem(LIVE_CACHE_DATE, new Date().toISOString().slice(0,10));
+    }catch(e){}
+
+    if(updated > 0){
+      setLiveStatus('✓ Обновлено '+updated+' моделей', 'ms-ok');
+      renderAll();
+    } else {
+      setLiveStatus('Нет данных от API', 'ms-err');
+    }
+
+  } catch(e){
+    setLiveStatus('Ошибка: '+e.message, 'ms-err');
+  }
+}
+
+function loadMsCache(){
+  try{
+    var today = new Date().toISOString().slice(0,10);
+    var d = localStorage.getItem(LIVE_CACHE_DATE);
+    var c = localStorage.getItem(LIVE_CACHE_KEY);
+    if(c && d === today){
+      var cached = JSON.parse(c);
+      var count = 0;
+      Object.keys(cached).forEach(function(id){
+        if(cached[id]>0){ GROSS[id]=cached[id]; count++; }
+      });
+      if(count>0){
+        setLiveStatus('✓ Кэш от '+d+' ('+count+' моделей)', 'ms-ok');
+      }
+      return count > 0;
+    }
+  }catch(e){}
+  return false;
+}
+
+// ── INIT ──
+// ── КАТАЛОГ УСТРОЙСТВ ДЛЯ ДОБАВЛЕНИЯ ─────────────────────────────
+var CATALOG = [
+  // SHA-256 · BTC · Bitmain
+  {id:'c_s21xp',      name:'Antminer S21 XP',        maker:'Bitmain · SHA-256',        hash:'270 TH/s',  hashNum:270,  unit:'TH', power:'3 645 Вт', watts:3645,  eff:'13.5 J/T', sym:'BTC', tags:['hot']},
+  {id:'c_s21pro',     name:'Antminer S21 Pro',        maker:'Bitmain · SHA-256',        hash:'234 TH/s',  hashNum:234,  unit:'TH', power:'3 510 Вт', watts:3510,  eff:'15.0 J/T', sym:'BTC', tags:[]},
+  {id:'c_s21',        name:'Antminer S21',            maker:'Bitmain · SHA-256',        hash:'200 TH/s',  hashNum:200,  unit:'TH', power:'3 500 Вт', watts:3500,  eff:'17.5 J/T', sym:'BTC', tags:[]},
+  {id:'c_s21xphyd',   name:'Antminer S21 XP Hyd',     maker:'Bitmain · SHA-256 · Hydro',hash:'473 TH/s',  hashNum:473,  unit:'TH', power:'5 676 Вт', watts:5676,  eff:'12.0 J/T', sym:'BTC', tags:['hyd','hot']},
+  {id:'c_s21plushyd', name:'Antminer S21+ Hyd 395T',  maker:'Bitmain · SHA-256 · Hydro',hash:'395 TH/s',  hashNum:395,  unit:'TH', power:'5 925 Вт', watts:5925,  eff:'15.0 J/T', sym:'BTC', tags:['hyd']},
+  {id:'c_s19xppro',   name:'Antminer S19 XP Pro',     maker:'Bitmain · SHA-256',        hash:'255 TH/s',  hashNum:255,  unit:'TH', power:'5 304 Вт', watts:5304,  eff:'20.8 J/T', sym:'BTC', tags:[]},
+  {id:'c_s19kpro',    name:'Antminer S19k Pro',       maker:'Bitmain · SHA-256',        hash:'120 TH/s',  hashNum:120,  unit:'TH', power:'2 760 Вт', watts:2760,  eff:'23.0 J/T', sym:'BTC', tags:[]},
+  {id:'c_s19j',       name:'Antminer S19j Pro+',      maker:'Bitmain · SHA-256',        hash:'122 TH/s',  hashNum:122,  unit:'TH', power:'3 355 Вт', watts:3355,  eff:'27.5 J/T', sym:'BTC', tags:[]},
+  // SHA-256 · BTC · MicroBT
+  {id:'c_m70',        name:'WhatsMiner M70',           maker:'MicroBT · SHA-256',        hash:'224 TH/s',  hashNum:224,  unit:'TH', power:'3 248 Вт', watts:3248,  eff:'14.5 J/T', sym:'BTC', tags:['hot']},
+  {id:'c_m66s',       name:'WhatsMiner M66S',          maker:'MicroBT · SHA-256',        hash:'298 TH/s',  hashNum:298,  unit:'TH', power:'5 069 Вт', watts:5069,  eff:'17.0 J/T', sym:'BTC', tags:[]},
+  {id:'c_m63splus',   name:'WhatsMiner M63S+',         maker:'MicroBT · SHA-256 · Hydro',hash:'418 TH/s',  hashNum:418,  unit:'TH', power:'7 106 Вт', watts:7106,  eff:'17.0 J/T', sym:'BTC', tags:['hyd']},
+  {id:'c_m61splus',   name:'WhatsMiner M61S+',         maker:'MicroBT · SHA-256',        hash:'236 TH/s',  hashNum:236,  unit:'TH', power:'4 012 Вт', watts:4012,  eff:'17.0 J/T', sym:'BTC', tags:[]},
+  {id:'c_m60splus',   name:'WhatsMiner M60S+',         maker:'MicroBT · SHA-256',        hash:'204 TH/s',  hashNum:204,  unit:'TH', power:'3 468 Вт', watts:3468,  eff:'17.0 J/T', sym:'BTC', tags:[]},
+  {id:'c_m56splus',   name:'WhatsMiner M56S+',         maker:'MicroBT · SHA-256 · Hydro',hash:'230 TH/s',  hashNum:230,  unit:'TH', power:'3 450 Вт', watts:3450,  eff:'15.0 J/T', sym:'BTC', tags:['hyd']},
+  {id:'c_m50splus',   name:'WhatsMiner M50S+',         maker:'MicroBT · SHA-256',        hash:'136 TH/s',  hashNum:136,  unit:'TH', power:'3 224 Вт', watts:3224,  eff:'23.7 J/T', sym:'BTC', tags:[]},
+  // Scrypt · LTC/DOGE
+  {id:'c_l11',        name:'Antminer L11',             maker:'Bitmain · Scrypt',         hash:'20 GH/s',   hashNum:20,   unit:'GH', power:'3 680 Вт', watts:3680,  eff:'184 J/G',  sym:'LTC', tags:['hot']},
+  {id:'c_l9',         name:'Antminer L9',              maker:'Bitmain · Scrypt',         hash:'16 GH/s',   hashNum:16,   unit:'GH', power:'3 360 Вт', watts:3360,  eff:'210 J/G',  sym:'LTC', tags:[]},
+  {id:'c_l7',         name:'Antminer L7',              maker:'Bitmain · Scrypt',         hash:'9.5 GH/s',  hashNum:9.5,  unit:'GH', power:'3 425 Вт', watts:3425,  eff:'361 J/G',  sym:'LTC', tags:[]},
+  {id:'c_lt6',        name:'Goldshell LT6',            maker:'Goldshell · Scrypt',       hash:'3.35 GH/s', hashNum:3.35, unit:'GH', power:'3 300 Вт', watts:3300,  eff:'985 J/G',  sym:'LTC', tags:[]},
+  // Equihash · ZEC
+  {id:'c_z15pro860',  name:'Antminer Z15 Pro 860K',    maker:'Bitmain · Equihash',       hash:'860 KSol/s',hashNum:860,  unit:'KS', power:'2 850 Вт', watts:2850,  eff:'ZEC/ZEN',  sym:'ZEC', tags:['hot']},
+  {id:'c_z15pro840',  name:'Antminer Z15 Pro 840K',    maker:'Bitmain · Equihash',       hash:'840 KSol/s',hashNum:840,  unit:'KS', power:'2 560 Вт', watts:2560,  eff:'ZEC/ZEN',  sym:'ZEC', tags:[]},
+  {id:'c_z15pro820',  name:'Antminer Z15 Pro 820K',    maker:'Bitmain · Equihash',       hash:'820 KSol/s',hashNum:820,  unit:'KS', power:'2 714 Вт', watts:2714,  eff:'ZEC/ZEN',  sym:'ZEC', tags:[]},
+  {id:'c_z15',        name:'Antminer Z15',             maker:'Bitmain · Equihash',       hash:'420 KSol/s',hashNum:420,  unit:'KS', power:'1 510 Вт', watts:1510,  eff:'ZEC/ZEN',  sym:'ZEC', tags:[]},
+];
+
+var CUSTOM_MODELS_KEY = 'vekus_custom_models_v1';
+var HIDDEN_MODELS_KEY = 'vekus_hidden_models_v1';
+
+function loadCustomModels(){
+  try{
+    var raw = localStorage.getItem(CUSTOM_MODELS_KEY);
+    if(!raw) return [];
+    return JSON.parse(raw);
+  }catch(e){ return []; }
+}
+
+function saveCustomModels(models){
+  try{ localStorage.setItem(CUSTOM_MODELS_KEY, JSON.stringify(models)); }catch(e){}
+}
+
+function getCustomModels(){
+  return loadCustomModels();
+}
+
+// Добавляем пользовательские модели в MODELS и GROSS при загрузке
+function applyCustomModels(){
+  var custom = loadCustomModels();
+  custom.forEach(function(m){
+    // Добавляем в нужную группу
+    var group = m.group || 'btc-air';
+    if(MODELS[group]){
+      // Проверяем нет ли уже такой модели
+      var exists = MODELS[group].some(function(existing){ return existing.id === m.id; });
+      if(!exists) MODELS[group].push(m);
+    }
+    // Устанавливаем доходность
+    if(m.grossUSD) GROSS[m.id] = m.grossUSD;
+    MODEL_WATTS[m.id] = m.watts;
+    MODEL_HASHRATES[m.id] = m.hashNum;
+    // Пересчитаем доходность из текущего hashprice если есть данные
+    ALL_MODELS = Object.values(MODELS).flat();
+  });
+}
+
+// Определяем группу по алгоритму/символу монеты
+function getGroupForModel(sym, isHydro){
+  if(sym === 'LTC') return 'scrypt';
+  if(sym === 'ZEC') return 'zec';
+  if(isHydro) return 'btc-hyd';
+  return 'btc-air';
+}
+
+// Добавить устройство из каталога
+function addFromCatalog(catalogId){
+  var template = null;
+  for(var i=0;i<CATALOG.length;i++){
+    if(CATALOG[i].id === catalogId){ template = CATALOG[i]; break; }
+  }
+  if(!template){ alert('Устройство не найдено'); return; }
+
+  var custom = loadCustomModels();
+  // Проверяем нет ли уже
+  var alreadyExists = custom.some(function(m){ return m.id === template.id; });
+  // Также проверим базовые модели
+  var inBase = ALL_MODELS.some(function(ex){ return ex.id === template.id; });
+  if(alreadyExists || inBase){
+    alert('Устройство "'+template.name+'" уже есть в списке');
+    return;
+  }
+
+  var isHydro = template.tags.indexOf('hyd') >= 0;
+  var group = getGroupForModel(template.sym, isHydro);
+
+  var newModel = {
+    id: template.id,
+    name: template.name,
+    maker: template.maker,
+    hash: template.hash,
+    hashNum: template.hashNum,
+    unit: template.unit,
+    power: template.power,
+    watts: template.watts,
+    eff: template.eff,
+    sym: template.sym,
+    tags: template.tags,
+    group: group,
+    grossUSD: GROSS[template.id] || 0,
+    isCustom: true
+  };
+
+  custom.push(newModel);
+  saveCustomModels(custom);
+  applyCustomModels();
+  // Пересчитаем доходность сразу после apply
+  recalcCustomModelYield(newModel);
+  buildAdminModelList();
+  renderAll();
+
+  // Показываем результат
+  var statusEl = document.getElementById('catalog-status');
+  if(statusEl){
+    statusEl.textContent = '✓ '+template.name+' добавлено';
+    statusEl.style.color = '#62AA46';
+    setTimeout(function(){ statusEl.textContent=''; }, 3000);
+  }
+}
+
+// Пересчёт доходности для кастомной модели из текущих сетевых данных
+function recalcCustomModelYield(m){
+  // Считаем доходность пропорционально базовой модели того же алгоритма
+  var newGross = 0;
+  if(m.sym === 'BTC' && m.hashNum){
+    var refId = 's21xp';
+    var refGross = GROSS[refId] || 9.64;
+    var refHash = MODEL_HASHRATES[refId] || 270;
+    newGross = Math.round(m.hashNum * (refGross/refHash) * 100) / 100;
+  } else if(m.sym === 'LTC' && m.hashNum){
+    var refGrossLtc = GROSS['l9'] || 7.89;
+    var refHashLtc = MODEL_HASHRATES['l9'] || 16;
+    newGross = Math.round(m.hashNum * (refGrossLtc/refHashLtc) * 100) / 100;
+  } else if(m.sym === 'ZEC' && m.hashNum){
+    var refGrossZec = GROSS['z15pro840'] || 36.61;
+    var refHashZec = MODEL_HASHRATES['z15pro840'] || 840;
+    newGross = Math.round(m.hashNum * (refGrossZec/refHashZec) * 100) / 100;
+  }
+  if(newGross > 0){
+    GROSS[m.id] = newGross;
+    // Сохраним в custom models
+    var custom = loadCustomModels();
+    custom.forEach(function(cm){ if(cm.id===m.id) cm.grossUSD=newGross; });
+    saveCustomModels(custom);
+  }
+  renderAll();
+}
+
+// Удалить кастомную модель
+function removeCustomModel(id){
+  var custom = loadCustomModels();
+  custom = custom.filter(function(m){ return m.id !== id; });
+  saveCustomModels(custom);
+  // Удалим из MODELS
+  Object.keys(MODELS).forEach(function(g){
+    MODELS[g] = MODELS[g].filter(function(m){ return m.id !== id; });
+  });
+  delete GROSS[id];
+  delete MODEL_WATTS[id];
+  delete MODEL_HASHRATES[id];
+  ALL_MODELS = Object.values(MODELS).flat();
+  buildAdminModelList();
+  renderAll();
+}
+
+
+// ── GOOGLE SHEETS SYNC ────────────────────────────────────────────
+var GS_URL_KEY = 'vekus_gs_url_v1';
+var GS_CACHE_KEY = 'vekus_gs_cache_v1';
+var GS_CACHE_DATE = 'vekus_gs_cache_date_v1';
+
+function saveGsUrl(url){
+  try{ localStorage.setItem(GS_URL_KEY, url); }catch(e){}
+}
+
+function loadGsUrl(){
+  try{ return localStorage.getItem(GS_URL_KEY)||''; }catch(e){ return ''; }
+}
+
+// Конвертируем URL Google Sheets в CSV export URL
+function toGsCsvUrl(url){
+  if(!url) return '';
+  if(url.indexOf('netlify') >= 0) return url;
+  if(url.indexOf('script.google.com') >= 0) return url;
+  // Уже правильная pub CSV ссылка
+  if(url.indexOf('output=csv') >= 0) return url;
+  // PACX ссылка — возвращаем как есть (fetch обработает)
+  if(url.indexOf('2PACX') >= 0) return url;
+  // Извлекаем ID таблицы из любой ссылки
+  var mId = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if(!mId) return url;
+  var sheetId = mId[1];
+  var gidM = url.match(/gid=(\d+)/);
+  var gid = gidM ? gidM[1] : '0';
+  // Конвертируем в pub CSV URL
+  return 'https://docs.google.com/spreadsheets/d/'+sheetId+'/export?format=csv&gid='+gid;
+}
+function parseCsvLine(line){
+  var result = [];
+  var cur = '';
+  var inQuotes = false;
+  for(var i=0;i<line.length;i++){
+    var c = line[i];
+    if(c==='"'){
+      if(inQuotes && line[i+1]==='"'){ cur+='"'; i++; }
+      else { inQuotes=!inQuotes; }
+    } else if(c===',' && !inQuotes){
+      result.push(cur.trim()); cur='';
+    } else { cur+=c; }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+
+
+// Парсим формат Google Visualization API
+
+// ── GOOGLE SHEETS STATUS ─────────────────────────────────────────
+function setGsStatus(msg, type){
+  var el = document.getElementById('gs-status');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = type==='ok' ? '#62AA46' : type==='err' ? '#e74c3c' : '#5a6070';
+}
+
+
+async function syncFromGoogleSheets(force){
+  var url = loadGsUrl();
+  if(!url){ setGsStatus('\u041d\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d\u043e','err'); return false; }
+
+  // Кэш
+  if(!force){
+    try{
+      var d=localStorage.getItem(GS_CACHE_DATE), c=localStorage.getItem(GS_CACHE_KEY);
+      var today=new Date().toISOString().slice(0,10);
+      if(c&&d===today){ applyGsData(JSON.parse(c)); setGsStatus('\u041a\u044d\u0448 \u043e\u0442 '+d,'ok'); return true; }
+    }catch(e){}
+  }
+
+  setGsStatus('\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...','');
+
+  var isPacx   = url.indexOf('2PACX') >= 0;
+  var isGviz   = url.indexOf('gviz/tq') >= 0;
+  var isScript = url.indexOf('script.google.com') >= 0;
+
+  // PACX pub CSV — fetch напрямую (Google разрешает CORS для опубликованных таблиц)
+  if(isPacx || (!isGviz && !isScript)){
+    try{
+      var r = await fetch(url, {mode:'cors', redirect:'follow'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      var text = await r.text();
+      var parsed = null;
+      var tr = text.trim();
+      // Определяем формат ответа
+      if(tr.indexOf('google.visualization.Query.setResponse') === 0 || tr.indexOf('/*O_o*/') >= 0){
+        // gviz JSONP формат
+        var jsonStr = tr.replace(/^[^{(]*\(/,'').replace(/\);\s*$/,'');
+        try{ var obj=JSON.parse(jsonStr); parsed=parseGvizTable(obj.table); }catch(ex){}
+      } else if(tr.charAt(0)==='{'){
+        try{ parsed=JSON.parse(tr); }catch(ex){}
+      } else {
+        parsed = parseGsCsv(text);
+      }
+      if(parsed && !parsed.error){
+        try{
+          localStorage.setItem(GS_CACHE_KEY,JSON.stringify(parsed));
+          localStorage.setItem(GS_CACHE_DATE,new Date().toISOString().slice(0,10));
+        }catch(e){}
+        applyGsData(parsed);
+        var mc=parsed.models?Object.keys(parsed.models).length:0;
+        setGsStatus('\u2713 \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e: '+mc+' \u043c\u043e\u0434\u0435\u043b\u0435\u0439','ok');
+        return true;
+      }
+      throw new Error(parsed&&parsed.error ? parsed.error : '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0440\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0442\u044c \u0444\u043e\u0440\u043c\u0430\u0442');
+    }catch(err){
+      setGsStatus('\u041e\u0448\u0438\u0431\u043a\u0430: '+err.message,'err');
+      return false;
+    }
+  }
+
+  // gviz или Apps Script — JSONP через <script> тег
+  return new Promise(function(resolve){
+    var cbName='vekusCb_'+Date.now(), timer=null, scriptEl=null;
+    function cleanup(){ clearTimeout(timer); if(scriptEl&&scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl); delete window[cbName]; }
+    window[cbName]=function(raw){
+      cleanup();
+      var data=(isGviz&&raw&&raw.table)?parseGvizTable(raw.table):raw;
+      if(!data||data.error){ setGsStatus('\u041e\u0448\u0438\u0431\u043a\u0430: '+(data&&data.error||'bad data'),'err'); resolve(false); return; }
+      try{ localStorage.setItem(GS_CACHE_KEY,JSON.stringify(data)); localStorage.setItem(GS_CACHE_DATE,new Date().toISOString().slice(0,10)); }catch(e){}
+      applyGsData(data);
+      var mc=data.models?Object.keys(data.models).length:0;
+      setGsStatus('\u2713 \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e: '+mc+' \u043c\u043e\u0434\u0435\u043b\u0435\u0439','ok');
+      resolve(true);
+    };
+    timer=setTimeout(function(){ cleanup(); setGsStatus('\u041e\u0448\u0438\u0431\u043a\u0430: \u0442\u0430\u0439\u043c\u0430\u0443\u0442 15\u0441','err'); resolve(false); },15000);
+    var sep=url.indexOf('?')>=0?'&':'?';
+    scriptEl=document.createElement('script');
+    scriptEl.src=url+sep+'callback='+cbName;
+    scriptEl.onerror=function(){ cleanup(); setGsStatus('\u041e\u0448\u0438\u0431\u043a\u0430: \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d','err'); resolve(false); };
+    document.head.appendChild(scriptEl);
+  });
+}
+
+function parseGsCsv(text){
+  var lines = text.split('\n').filter(function(l){ return l.trim(); });
+  if(lines.length < 2) return null;
+
+  // Первая строка — заголовки
+  var headers = parseCsvLine(lines[0]).map(function(h){ return h.toLowerCase().replace(/\s+/g,''); });
+
+  var col = {};
+  var expectedCols = ['id','baseusd','usdrate','transfer','logistics','markup','vat','visible','note'];
+  expectedCols.forEach(function(c){ col[c] = headers.indexOf(c); });
+
+  // id обязателен
+  if(col['id'] < 0) return null;
+
+  var result = { models:{}, globalParams:{}, hidden:[] };
+
+  for(var i=1;i<lines.length;i++){
+    var cells = parseCsvLine(lines[i]);
+    var id = cells[col['id']] ? cells[col['id']].trim() : '';
+    if(!id) continue;
+
+    // Глобальные параметры (строка с id='global')
+    if(id === 'global'){
+      if(col['usdrate']>=0 && cells[col['usdrate']]) result.globalParams.usdrate = parseFloat(cells[col['usdrate']]);
+      if(col['transfer']>=0 && cells[col['transfer']]) result.globalParams.transfer = parseFloat(cells[col['transfer']]);
+      if(col['logistics']>=0 && cells[col['logistics']]) result.globalParams.logistics = parseFloat(cells[col['logistics']]);
+      if(col['markup']>=0 && cells[col['markup']]) result.globalParams.markup = parseFloat(cells[col['markup']]);
+      if(col['vat']>=0 && cells[col['vat']]) result.globalParams.vat = parseFloat(cells[col['vat']]);
+      continue;
+    }
+
+    var model = {};
+    if(col['baseusd']>=0 && cells[col['baseusd']]) model.baseUsd = parseFloat(cells[col['baseusd']]);
+    if(col['usdrate']>=0 && cells[col['usdrate']]) model.usdrate = parseFloat(cells[col['usdrate']]);
+    if(col['transfer']>=0 && cells[col['transfer']]) model.transfer = parseFloat(cells[col['transfer']]);
+    if(col['logistics']>=0 && cells[col['logistics']]) model.logistics = parseFloat(cells[col['logistics']]);
+    if(col['markup']>=0 && cells[col['markup']]) model.markup = parseFloat(cells[col['markup']]);
+    if(col['vat']>=0 && cells[col['vat']]) model.vat = parseFloat(cells[col['vat']]);
+    if(col['note']>=0 && cells[col['note']]) model.note = cells[col['note']];
+
+    // visible: 0 = скрыть
+    if(col['visible']>=0 && cells[col['visible']]){
+      var vis = cells[col['visible']].trim();
+      if(vis==='0'||vis.toLowerCase()==='false'||vis.toLowerCase()==='нет'||vis.toLowerCase()==='скрыть'){
+        result.hidden.push(id);
+      }
+    }
+
+    result.models[id] = model;
+  }
+
+  return result;
+}
+
+function parseGvizTable(table){
+  if(!table || !table.cols || !table.rows) return null;
+  var headers = table.cols.map(function(c){ return (c.label||c.id||'').toLowerCase().replace(/\n/g,' ').trim(); });
+  console.log('[GS] headers:', JSON.stringify(headers));
+
+  // Ищем колонки по нескольким вариантам названий (английские и русские)
+  function findCol(names){
+    for(var ni=0;ni<names.length;ni++){
+      var idx = headers.indexOf(names[ni]);
+      if(idx >= 0) return idx;
+    }
+    return -1;
+  }
+
+  var colId    = findCol(['id','id модели']);
+  var colPrEx  = findCol(['priceexvat','цена без ндс (руб)']);
+  var colPrIn  = findCol(['priceincvat','цена с ндс (руб)']);
+  var colBase  = findCol(['baseusd','себестоимость usd']);
+  var colRate  = findCol(['usdrate','курс usd']);
+  var colTr    = findCol(['transfer','комиссия %']);
+  var colLog   = findCol(['logistics','логистика usd']);
+  var colMk    = findCol(['markup','наценка %']);
+  var colVat   = findCol(['vat','ндс %']);
+  var colVis   = findCol(['visible','видимость 1/0']);
+  var colNote  = findCol(['note','примечание']);
+
+  if(colId < 0) return {error:'id column not found. Headers: '+JSON.stringify(headers)};
+  var result={models:{}, globalParams:{}, hidden:[], updated:new Date().toISOString()};
+  table.rows.forEach(function(row){
+    var cells=row.c||[];
+    function val(i){ return (i>=0&&cells[i]&&cells[i].v!==null&&cells[i].v!==undefined)?cells[i].v:null; }
+    var id=val(colId); if(!id) return; id=String(id).trim(); if(!id) return;
+    if(id==='global'){
+      if(val(colRate)!==null) result.globalParams.usdrate=parseFloat(val(colRate));
+      if(val(colTr)!==null) result.globalParams.transfer=parseFloat(val(colTr));
+      if(val(colLog)!==null) result.globalParams.logistics=parseFloat(val(colLog));
+      if(val(colMk)!==null) result.globalParams.markup=parseFloat(val(colMk));
+      if(val(colVat)!==null) result.globalParams.vat=parseFloat(val(colVat));
+      return;
+    }
+    var model={};
+    if(val(colPrEx)!==null||val(colPrIn)!==null){
+      model.priceExVat=val(colPrEx)?Math.round(parseFloat(val(colPrEx))):0;
+      model.priceIncVat=val(colPrIn)?Math.round(parseFloat(val(colPrIn))):0;
+      model._fromScript=true;
+    }
+    if(val(colBase)!==null) model.baseUsd=parseFloat(val(colBase));
+    if(val(colRate)!==null) model.usdrate=parseFloat(val(colRate));
+    if(val(colTr)!==null) model.transfer=parseFloat(val(colTr));
+    if(val(colLog)!==null) model.logistics=parseFloat(val(colLog));
+    if(val(colMk)!==null) model.markup=parseFloat(val(colMk));
+    if(val(colVat)!==null) model.vat=parseFloat(val(colVat));
+    if(val(colNote)!==null) model.note=String(val(colNote));
+    var vis=val(colVis);
+    if(vis!==null&&(String(vis).trim()==='0'||String(vis).toLowerCase()==='false')) result.hidden.push(id);
+    result.models[id]=model;
+  });
+  return result;
+}
+
+// ── COLLAPSIBLE SECTIONS ──────────────────────────────────────────
+function toggleSection(id){
+  var body = document.getElementById(id+'-body');
+  var chev = document.getElementById(id+'-chev');
+  if(!body) return;
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if(chev) chev.classList.toggle('open', !isOpen);
+}
+
+// ── SHOW/HIDE ALL MODELS ──────────────────────────────────────────
+function setAllVisibility(visible){
+  ALL_MODELS.forEach(function(m){
+    var cb = document.getElementById('vis-'+m.id);
+    if(cb) cb.checked = visible;
+    toggleModelVisibility(m.id, visible);
+  });
+}
+
+// ── DRAG & DROP REORDER ───────────────────────────────────────────
+var dragSrcId = null;
+
+function onDragStart(e, id){
+  dragSrcId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(function(){
+    var el = document.querySelector('.admin-model-row[data-model-id="'+id+'"]');
+    if(el) el.classList.add('dragging');
+  }, 0);
+}
+
+function onDragOver(e, id){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.admin-model-row').forEach(function(r){
+    r.classList.remove('drag-over');
+  });
+  var el = document.querySelector('.admin-model-row[data-model-id="'+id+'"]');
+  if(el && id !== dragSrcId) el.classList.add('drag-over');
+}
+
+function onDrop(e, targetId){
+  e.preventDefault();
+  document.querySelectorAll('.admin-model-row').forEach(function(r){
+    r.classList.remove('drag-over','dragging');
+  });
+  if(!dragSrcId || dragSrcId === targetId) return;
+  Object.keys(MODELS).forEach(function(g){
+    var arr = MODELS[g], si = -1, ti = -1;
+    arr.forEach(function(m,i){ if(m.id===dragSrcId) si=i; if(m.id===targetId) ti=i; });
+    if(si>=0 && ti>=0){ var tmp=arr[si]; arr[si]=arr[ti]; arr[ti]=tmp; }
+  });
+  ALL_MODELS = Object.values(MODELS).flat();
+  try{ localStorage.setItem('vekus_model_order_v1', JSON.stringify(ALL_MODELS.map(function(m){return m.id;}))); }catch(e){}
+  buildAdminModelList();
+  renderAll();
+  dragSrcId = null;
+}
+
+function onDragEnd(){
+  dragSrcId = null;
+  document.querySelectorAll('.admin-model-row').forEach(function(r){
+    r.classList.remove('dragging','drag-over');
+  });
+}
+
+function applySavedOrder(){
+  try{
+    var order = JSON.parse(localStorage.getItem('vekus_model_order_v1')||'[]');
+    if(!order.length) return;
+    Object.keys(MODELS).forEach(function(g){
+      var sorted = [];
+      order.forEach(function(id){
+        var m = MODELS[g].find(function(x){ return x.id===id; });
+        if(m) sorted.push(m);
+      });
+      MODELS[g].forEach(function(m){ if(order.indexOf(m.id)<0) sorted.push(m); });
+      MODELS[g] = sorted;
+    });
+    ALL_MODELS = Object.values(MODELS).flat();
+  }catch(e){}
+}
+
+// ── OVERRIDE buildAdminModelList WITH DRAG+TOOLBAR ────────────────
+buildAdminModelList = function(){
+  var c = $('adminModelList'); if(!c) return;
+  c.innerHTML = '';
+
+  var toolbar = document.createElement('div');
+  toolbar.className = 'models-toolbar';
+  toolbar.innerHTML = '<button class="models-toolbar-btn" onclick="setAllVisibility(true)">Включить все</button>'
+    +'<div class="models-toolbar-sep"></div>'
+    +'<button class="models-toolbar-btn" onclick="setAllVisibility(false)">Отключить все</button>'
+    +'<span style="font-size:9px;color:var(--dim);margin-left:auto;letter-spacing:1px">☰ перетащите для сортировки</span>';
+  c.appendChild(toolbar);
+
+  ALL_MODELS.forEach(function(m){
+    var ov = adminData.models[m.id]||{};
+    var row = document.createElement('div');
+    row.className = 'admin-model-row';
+    row.setAttribute('data-model-id', m.id);
+    row.draggable = true;
+    row.addEventListener('dragstart', function(e){ onDragStart(e, m.id); });
+    row.addEventListener('dragover',  function(e){ onDragOver(e, m.id); });
+    row.addEventListener('drop',      function(e){ onDrop(e, m.id); });
+    row.addEventListener('dragend',   onDragEnd);
+
+    row.innerHTML =
+      '<span class="drag-handle" title="Перетащите">☰</span>'
+      +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0">'
+      +'<input type="checkbox" id="vis-'+m.id+'" data-id="'+m.id+'" '+(isModelVisible(m.id)?'checked':'')
+      +' style="width:14px;height:14px;accent-color:#62AA46;cursor:pointer"></label>'
+      +'<div style="flex:1"><div class="admin-model-name">'+m.name+'</div><div class="admin-model-sub">'+m.maker+'</div></div>'
+      +'<div class="admin-base-price"><div class="admin-bp-label">Себестоимость USD</div>'
+      +'<input class="admin-bp-input" id="adm-'+m.id+'-baseusd" type="number" placeholder="напр. 4800" min="0" step="10"'
+      +' value="'+(ov.baseUsd!=null?ov.baseUsd:'')+'" data-onadm="1"></div>'
+      +'<div><div class="admin-overrides">'
+      +'<div class="override-field"><div class="override-label">Курс</div>'
+      +'<input class="override-input" id="adm-'+m.id+'-usdrate" type="number" placeholder="global" step="0.1"'
+      +' value="'+(ov.usdrate!=null?ov.usdrate:'')+'" data-onadm="1"></div>'
+      +'<div class="override-field"><div class="override-label">Комисс%</div>'
+      +'<input class="override-input" id="adm-'+m.id+'-transfer" type="number" placeholder="global" step="0.1"'
+      +' value="'+(ov.transfer!=null?ov.transfer:'')+'" data-onadm="1"></div>'
+      +'<div class="override-field"><div class="override-label">Логист</div>'
+      +'<input class="override-input" id="adm-'+m.id+'-logistics" type="number" placeholder="global" step="10"'
+      +' value="'+(ov.logistics!=null?ov.logistics:'')+'" data-onadm="1"></div>'
+      +'<div class="override-field"><div class="override-label">Нацен%</div>'
+      +'<input class="override-input" id="adm-'+m.id+'-markup" type="number" placeholder="global" step="0.5"'
+      +' value="'+(ov.markup!=null?ov.markup:'')+'" data-onadm="1"></div>'
+      +'<div class="override-field"><div class="override-label">НДС%</div>'
+      +'<input class="override-input" id="adm-'+m.id+'-vat" type="number" placeholder="global" step="0.5"'
+      +' value="'+(ov.vat!=null?ov.vat:'')+'" data-onadm="1"></div>'
+      +'</div>'
+      +'<div class="admin-calc-result" id="calc-'+m.id+'">'
+      +'<span class="calc-tag">Без НДС:</span><span class="calc-val ex" id="calc-ex-'+m.id+'">—</span>'
+      +'<span class="calc-tag" style="margin-left:6px">С НДС:</span><span class="calc-val inc" id="calc-inc-'+m.id+'">—</span>'
+      +(m.isCustom?'<button data-remove="1" style="margin-left:auto;background:transparent;border:1px solid #c0392b44;color:#c0392b;font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;font-family:Rajdhani,sans-serif;letter-spacing:1px">Удалить</button>':'')
+      +'</div></div>';
+
+    c.appendChild(row);
+    updateAdminCalc(m.id);
+  });
+
+  // Event delegation — один раз на весь список
+  c.addEventListener('change', function(e){
+    if(e.target && e.target.type==='checkbox' && e.target.getAttribute('data-id')){
+      toggleModelVisibility(e.target.getAttribute('data-id'), e.target.checked);
+    }
+  });
+  c.addEventListener('input', function(e){
+    if(e.target && e.target.getAttribute('data-onadm')){
+      var r = e.target.closest ? e.target.closest('.admin-model-row') : null;
+      if(r) onAdmChange(r.getAttribute('data-model-id'));
+    }
+  });
+  c.addEventListener('click', function(e){
+    if(e.target && e.target.getAttribute('data-remove')){
+      var r = e.target.closest ? e.target.closest('.admin-model-row') : null;
+      if(r) removeCustomModel(r.getAttribute('data-model-id'));
+    }
+  });
+};
+
+
+// ── АВТОРИЗАЦИЯ ───────────────────────────────────────────────────
+var ADMIN_PASSWORD = 'vekus2026';
+var ADMIN_SESSION_KEY = 'vekus_admin_session_v1';
+
+function checkPassword(){
+  var input = document.getElementById('adminPassword');
+  var err   = document.getElementById('loginError');
+  if(!input) return;
+  if(input.value === ADMIN_PASSWORD){
+    try{ sessionStorage.setItem(ADMIN_SESSION_KEY,'ok'); }catch(e){}
+    var overlay = document.getElementById('loginOverlay');
+    if(overlay) overlay.style.display='none';
+    initAdmin();
+  } else {
+    if(err) err.textContent = 'Неверный пароль';
+    input.value='';
+    if(input.focus) input.focus();
+    setTimeout(function(){ if(err) err.textContent=''; }, 2500);
+  }
+}
+
+function logout(){
+  try{ sessionStorage.removeItem(ADMIN_SESSION_KEY); }catch(e){}
+  location.reload();
+}
+
+function initAdmin(){
+  try{ applySavedOrder(); }catch(e){}
+  try{ applyCustomModels(); }catch(e){}
+  try{ populateCatalogSelect(); }catch(e){}
+  var savedUrl = loadGsUrl();
+  var urlEl = document.getElementById('gs-url-input');
+  if(urlEl && savedUrl) urlEl.value = savedUrl;
+  if(savedUrl) try{ syncFromGoogleSheets(false); }catch(e){}
+  try{ loadStorage(); }catch(e){}
+  try{ applyAdminDataToUI(); }catch(e){}
+  try{ buildAdminModelList(); }catch(e){}
+  renderAll();
+  try{ fetchRates(false); }catch(e){}
+  try{ scheduleNextMidnight(); }catch(e){}
+  var tabEls = document.querySelectorAll('.tab');
+  for(var ti=0;ti<tabEls.length;ti++){
+    (function(el){
+      el.addEventListener('touchend',function(e){
+        e.preventDefault();
+        var oc=el.getAttribute('onclick');
+        if(oc){ try{eval(oc);}catch(ex){} }
+      },{passive:false});
+    })(tabEls[ti]);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', function(){
+  var ok = false;
+  try{ ok = sessionStorage.getItem(ADMIN_SESSION_KEY) === 'ok'; }catch(e){}
+  if(ok){
+    var overlay = document.getElementById('loginOverlay');
+    if(overlay) overlay.style.display = 'none';
+    initAdmin();
+  } else {
+    setTimeout(function(){
+      var p = document.getElementById('adminPassword');
+      if(p && p.focus) p.focus();
+    }, 100);
+  }
+});
+window.onerror = function(msg,src,line){ console.error('[ADMIN]',msg,'line:'+line); return false; };
+
+</script>
+</body>
+</html>
